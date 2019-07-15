@@ -10,16 +10,20 @@ find_package(Boost COMPONENTS regex)
 
 add_subdirectory(core)
 add_subdirectory(config)
+add_subdirectory(gtk)
 
 include_directories(
     .
     )
 
-add_executable(dirc-gtk "main.cpp")
+add_executable(
+    dirc-gtk
+    gtk)
 
 target_link_libraries(
     dirc-gtk
     ${XercesC_LIBRARIES}
     core
     config
+    gtk
     )

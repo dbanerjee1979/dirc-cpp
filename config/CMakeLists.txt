@@ -11,3 +11,8 @@ add_library(
     dirc_config_builder.cpp
     dirc_config_doc_builder.cpp
     )
+
+target_link_libraries(
+    config
+    ${XercesC_LIBRARIES}
+    )
