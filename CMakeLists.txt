@@ -8,10 +8,11 @@ find_package(XercesC)
 find_package(PkgConfig)
 find_package(Boost COMPONENTS regex)
 
+add_subdirectory(core)
 add_subdirectory(config)
 
 include_directories(
-    ${PROJECT_SOURCE_DIR}
+    .
     )
 
 add_executable(dirc-gtk "main.cpp")
@@ -19,5 +20,6 @@ add_executable(dirc-gtk "main.cpp")
 target_link_libraries(
     dirc-gtk
     ${XercesC_LIBRARIES}
+    core
     config
     )
