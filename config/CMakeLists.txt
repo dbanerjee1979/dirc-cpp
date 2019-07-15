@@ -1,3 +1,5 @@
+find_package(XercesC)
+
 include_directories(
     ${PROJECT_SOURCE_DIR}
     )

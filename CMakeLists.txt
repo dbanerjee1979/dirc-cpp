@@ -4,7 +4,6 @@ project(dirc-cpp)
 
 set(CMAKE_BUILD_TYPE Debug)
 
-find_package(XercesC)
 find_package(PkgConfig)
 find_package(Boost COMPONENTS regex)
 
