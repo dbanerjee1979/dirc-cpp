@@ -49,12 +49,13 @@ void Element::for_each(std::function<void(const xml::Element &)> h) const {
     }
 }
 
-Element Element::append_child(const std::string &name) {
+void Element::append_child(const std::string &name, std::function<void(xml::Element &)> h) {
     auto x_name = std::unique_ptr<XMLCh>(new XMLCh[name.size() + 1]);
     xercesc::XMLString::transcode(name.c_str(), x_name.get(), name.size());
     xercesc::DOMElement *child = m_document->createElement(x_name.get());
     m_element->appendChild(child);
-    return Element(child, m_document);
+    Element el(child, m_document);
+    h(el);
 }
 
 }

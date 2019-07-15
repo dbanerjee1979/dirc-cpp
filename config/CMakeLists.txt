@@ -9,4 +9,5 @@ add_library(
     xml_element.cpp
     xml_document.cpp
     dirc_config_builder.cpp
+    dirc_config_doc_builder.cpp
     )

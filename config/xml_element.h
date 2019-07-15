@@ -17,7 +17,7 @@ public:
     bool get_bool() const;
     void set_bool(bool val);
     void for_each(std::function<void(const xml::Element &)> h) const;
-    Element append_child(const std::string &name);
+    void append_child(const std::string &name, std::function<void(xml::Element &)> h);
 private:
     xercesc::DOMElement *m_element;
     xercesc::DOMDocument *m_document;

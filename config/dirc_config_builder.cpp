@@ -21,8 +21,14 @@ core::DircConfig DircConfigBuilder::build() {
         if (boost::iequals(name, DircConfigElement::global_user_info)) {
             build_global_user_info(config, child);
         }
-        else if (boost::iequals(name, DircConfigElement::network)) {
+        else if (boost::iequals(name, DircConfigElement::networks)) {
             build_networks(config.networks, child);
+        }
+        else if (boost::iequals(name, DircConfigElement::skip_network_list_on_startup)) {
+            config.skip_list_on_startup = child.get_bool();
+        }
+        else if (boost::iequals(name, DircConfigElement::show_favorites_only)) {
+            config.show_favorites = child.get_bool();
         }
     });
     return config;
@@ -124,7 +130,7 @@ void DircConfigBuilder::build_server(core::Server &server, const xml::Element &r
     root.for_each([&] (const xml::Element &child) {
         auto name = child.get_name();
         if (boost::iequals(name, DircConfigElement::hostname)) {
-            server.hostname = boost::trim_copy(name);
+            server.hostname = boost::trim_copy(child.get_text());
         }
         else if (boost::iequals(name, DircConfigElement::port)) {
             std::string port = boost::trim_copy(child.get_text());
@@ -150,10 +156,10 @@ void DircConfigBuilder::build_channel(core::Channel &channel, const xml::Element
     root.for_each([&] (const xml::Element &child) {
         auto name = child.get_name();
         if (boost::iequals(name, DircConfigElement::name)) {
-            channel.name = boost::trim_copy(name);
+            channel.name = boost::trim_copy(child.get_text());
         }
         else if (boost::iequals(name, DircConfigElement::key)) {
-            channel.key = boost::trim_copy(name);
+            channel.key = boost::trim_copy(child.get_text());
         }
     });
 }
