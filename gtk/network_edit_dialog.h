@@ -121,12 +121,16 @@ private:
     Gtk::Grid m_user_info;
     Gtk::Label m_nickname_lbl;
     Gtk::Entry m_nickname_fld;
+    sigc::connection m_nickname_chgd;
     Gtk::Label m_nickname_2_lbl;
     Gtk::Entry m_nickname_2_fld;
+    sigc::connection m_nickname_2_chgd;
     Gtk::Label m_realname_lbl;
     Gtk::Entry m_realname_fld;
+    sigc::connection m_realname_chgd;
     Gtk::Label m_username_lbl;
     Gtk::Entry m_username_fld;
+    sigc::connection m_username_chgd;
     Gtk::Label m_login_method_lbl;
     Gtk::ComboBox m_login_method_picker;
     Gtk::Label m_password_lbl;

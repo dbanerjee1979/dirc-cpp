@@ -286,6 +286,32 @@ void NetworkEditDialog::edit(core::Network &network) {
             network.use_global_user_info = m_use_global_user_info.get_active();
             on_global_user_info();
         });
+
+    for (auto i = network.nicknames.size(); i < 3; i++) {
+        network.nicknames.push_back("");
+    }
+    m_nickname_fld.set_text(network.nicknames[0]);
+    m_nickname_chgd.disconnect();
+    m_nickname_chgd = m_nickname_fld.signal_changed().connect([&] () {
+        network.nicknames[0] = m_nickname_fld.get_text();
+    });
+    m_nickname_2_fld.set_text(network.nicknames[1]);
+    m_nickname_2_chgd.disconnect();
+    m_nickname_2_chgd = m_nickname_2_fld.signal_changed().connect([&] () {
+        network.nicknames[1] = m_nickname_2_fld.get_text();
+    });
+
+    m_realname_fld.set_text(network.realname);
+    m_realname_chgd.disconnect();
+    m_realname_chgd = m_realname_fld.signal_changed().connect([&] () {
+        network.realname = m_realname_fld.get_text();
+    });
+
+    m_username_fld.set_text(network.realname);
+    m_username_chgd.disconnect();
+    m_username_chgd = m_username_fld.signal_changed().connect([&] () {
+        network.realname = m_username_fld.get_text();
+    });
 }
 
 void NetworkEditDialog::populate_servers(core::Network &network) {
