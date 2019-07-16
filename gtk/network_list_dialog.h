@@ -10,6 +10,7 @@ class NetListColumns : public Gtk::TreeModel::ColumnRecord {
 public:
     NetListColumns();
 
+    Gtk::TreeModelColumn<unsigned> m_index;
     Gtk::TreeModelColumn<std::string> m_name;
     Gtk::TreeModelColumn<int> m_weight;
 };
@@ -26,6 +27,7 @@ private:
     void on_network_removed(core::DircConfig &config);
     void on_sort_networks(core::DircConfig &config);
     void on_toggle_favorite(core::DircConfig &config);
+    void on_toggle_filter(core::DircConfig &config);
     void populate_list(core::DircConfig &config);
     void populate_row(Gtk::TreeModel::Row &row, core::Network &network);
 
@@ -58,6 +60,7 @@ private:
     Gtk::HBox m_net_list_opts;
     Gtk::CheckButton m_skip_net_list;
     Gtk::CheckButton m_filter_net_list;
+    sigc::connection m_filter_clicked;
     Gtk::ButtonBox m_actions;
     Gtk::Button m_connect_btn;
     Gtk::Button m_close_btn;

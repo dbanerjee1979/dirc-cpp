@@ -8,6 +8,7 @@ using namespace std::placeholders;
 namespace gtk {
 
 NetListColumns::NetListColumns() {
+    add(m_index);
     add(m_name);
     add(m_weight);
 }
@@ -145,6 +146,11 @@ void NetworkListDialog::edit(core::DircConfig &config) {
         on_toggle_favorite(config);
     });
 
+    m_filter_clicked.disconnect();
+    m_filter_clicked = m_filter_net_list.signal_clicked().connect([&] () {
+        on_toggle_filter(config);
+    });
+
     populate_list(config);
 
     show_all();
@@ -155,28 +161,32 @@ void NetworkListDialog::on_name_edited(const Glib::ustring &path, const Glib::us
     boost::trim(name);
     if (name.length() > 0) {
         auto it = m_net_list_model->get_iter(path);
-        auto path = m_net_list_model->get_path(it);
-        unsigned i = unsigned(path[0]);
+        unsigned i = (*it)[m_net_list_columns.m_index];
         (*it)[m_net_list_columns.m_name] = name;
         config.networks[i].name = name;
     }
 }
 
 void NetworkListDialog::on_network_added(core::DircConfig &config) {
+    unsigned i = unsigned(config.networks.size());
     config.networks.push_back(core::Network());
-    core::Network network = config.networks.back();
+    core::Network &network = config.networks.back();
     network.name = "New Network";
     network.favorite = false;
     auto row = *m_net_list_model->append();
     populate_row(row, network);
+    row[m_net_list_columns.m_index] = i;
 }
 
 void NetworkListDialog::on_network_removed(core::DircConfig &config) {
     auto it = m_net_list.get_selection()->get_selected();
     if (it) {
-        auto path = m_net_list_model->get_path(it);
-        unsigned i = unsigned(path[0]);
+        unsigned i = (*it)[m_net_list_columns.m_index];
         config.networks.erase(config.networks.begin() + i);
+        for (auto rit = it; rit != m_net_list_model->children().end(); rit++) {
+            i = (*rit)[m_net_list_columns.m_index];
+            (*rit)[m_net_list_columns.m_index] = i - 1;
+        }
         m_net_list_model->erase(it);
     }
 }
@@ -192,8 +202,7 @@ void NetworkListDialog::on_sort_networks(core::DircConfig &config) {
 void NetworkListDialog::on_toggle_favorite(core::DircConfig &config) {
     auto it = m_net_list.get_selection()->get_selected();
     if (it) {
-        auto path = m_net_list_model->get_path(it);
-        unsigned i = unsigned(path[0]);
+        unsigned i = (*it)[m_net_list_columns.m_index];
         core::Network &network = config.networks[i];
         network.favorite = !network.favorite;
         auto row = *it;
@@ -201,11 +210,20 @@ void NetworkListDialog::on_toggle_favorite(core::DircConfig &config) {
     }
 }
 
+void NetworkListDialog::on_toggle_filter(core::DircConfig &config) {
+    config.show_favorites = !config.show_favorites;
+    populate_list(config);
+}
+
 void NetworkListDialog::populate_list(core::DircConfig &config) {
     m_net_list_model->clear();
-    for (auto it = config.networks.begin(); it != config.networks.end(); it++) {
-        auto row = *m_net_list_model->append();
-        populate_row(row, *it);
+    unsigned i = 0;
+    for (auto it = config.networks.begin(); it != config.networks.end(); it++, i++) {
+        if (!config.show_favorites || it->favorite) {
+            auto row = *m_net_list_model->append();
+            populate_row(row, *it);
+            row[m_net_list_columns.m_index] = i;
+        }
     }
 }
 
