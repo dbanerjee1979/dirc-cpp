@@ -148,6 +148,35 @@ NetworkEditDialog::NetworkEditDialog() :
     m_actions.set_spacing(8);
     m_actions.set_halign(Gtk::ALIGN_END);
     m_actions.pack_end(m_close_btn);
+
+    on_selection_changed(m_server_list.get_selection());
+    m_tabs.signal_switch_page().connect([&] (Widget *, guint i) {
+        on_tab_changed(i);
+    });
+}
+
+void NetworkEditDialog::on_tab_changed(unsigned index) {
+    m_sel_changed.disconnect();
+    Glib::RefPtr<Gtk::TreeSelection> selection;
+    switch (index) {
+        case 0:
+            selection = m_server_list.get_selection();
+            break;
+        case 1:
+            selection = m_autojoin_list.get_selection();
+            break;
+        case 2:
+            selection = m_connect_cmds_list.get_selection();
+            break;
+    }
+    on_selection_changed(selection);
+}
+
+void NetworkEditDialog::on_selection_changed(Glib::RefPtr<Gtk::TreeSelection> selection) {
+    m_del_btn.set_sensitive(selection->get_selected());
+    m_sel_changed = selection->signal_changed().connect([=] () {
+        m_del_btn.set_sensitive(selection->get_selected());
+    });
 }
 
 void NetworkEditDialog::edit(core::Network &network) {

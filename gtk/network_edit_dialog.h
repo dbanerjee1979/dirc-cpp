@@ -44,6 +44,8 @@ private:
     void on_channel_edited(const Glib::ustring &path, const Glib::ustring &value, core::Network &network);
     void on_password_edited(const Glib::ustring &path, const Glib::ustring &value, core::Network &network);
     void on_command_edited(const Glib::ustring &path, const Glib::ustring &value, core::Network &network);
+    void on_tab_changed(unsigned index);
+    void on_selection_changed(Glib::RefPtr<Gtk::TreeSelection> selection);
 
     boost::regex server_pattern;
     int m_selected_server;
@@ -84,6 +86,7 @@ private:
     Gtk::VBox m_edit_actions;
     Gtk::Button m_add_btn;
     Gtk::Button m_del_btn;
+    sigc::connection m_sel_changed;
     Gtk::CheckButton m_selected_server_only;
     Gtk::CheckButton m_auto_conn_network;
     Gtk::CheckButton m_bypass_proxy;
