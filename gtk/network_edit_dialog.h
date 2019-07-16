@@ -1,6 +1,7 @@
 #ifndef NETWORK_EDIT_DIALOG_H
 #define NETWORK_EDIT_DIALOG_H
 
+#include <functional>
 #include <string>
 #include <gtkmm.h>
 #include <boost/regex.hpp>
@@ -34,6 +35,7 @@ public:
 class NetworkEditDialog : public Gtk::Window {
 public:
     NetworkEditDialog();
+    virtual ~NetworkEditDialog();
     void edit(core::Network &network);
 private:
     void populate_servers(core::Network &network);
@@ -48,19 +50,27 @@ private:
     void on_password_edited(const Glib::ustring &path, const Glib::ustring &value, core::Network &network);
     void on_command_edited(const Glib::ustring &path, const Glib::ustring &value, core::Network &network);
     void on_tab_changed(unsigned index);
-    void on_selection_changed(Glib::RefPtr<Gtk::TreeSelection> selection);
-    void on_add(core::Network &network);
-    void on_remove(core::Network &network);
+    sigc::connection on_selection_changed(Glib::RefPtr<Gtk::TreeSelection> selection);
+    void on_add_item(core::Network &network);
+    void on_add_server(core::Network &network);
+    void on_add_channel(core::Network &network);
+    void on_add_command(core::Network &network);
+    void on_remove_item(core::Network &network);
+    void on_remove_server(core::Network &network);
+    void on_remove_channel(core::Network &network);
+    void on_remove_command(core::Network &network);
 
+    bool m_closing;
     boost::regex m_server_pattern;
     int m_selected_server;
-    unsigned m_selected_tab;
     ServerColumns m_server_columns;
     ChannelColumns m_channel_columns;
     CommandColumns m_command_columns;
     Glib::RefPtr<Gtk::ListStore> m_servers_model;
     Glib::RefPtr<Gtk::ListStore> m_channels_model;
     Glib::RefPtr<Gtk::ListStore> m_commands_model;
+    std::function<void(core::Network &)> m_add_handler;
+    std::function<void(core::Network &)> m_remove_handler;
 
     Gtk::VBox m_contents;
     Gtk::HBox m_tab_contents;

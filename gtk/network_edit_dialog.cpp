@@ -21,8 +21,8 @@ CommandColumns::CommandColumns() {
 }
 
 NetworkEditDialog::NetworkEditDialog() :
+        m_closing(false),
         m_server_pattern("\\s*((?:[A-z0-9-]+\\.)*[A-z0-9-]+)(?:/([0-9]*))?\\s*"),
-        m_selected_tab(0),
         m_servers_model(Gtk::ListStore::create(m_server_columns)),
         m_channels_model(Gtk::ListStore::create(m_channel_columns)),
         m_commands_model(Gtk::ListStore::create(m_command_columns)),
@@ -151,32 +151,44 @@ NetworkEditDialog::NetworkEditDialog() :
     m_actions.pack_end(m_close_btn);
 
     on_selection_changed(m_server_list.get_selection());
+    on_tab_changed(0);
     m_tabs.signal_switch_page().connect([&] (Widget *, guint i) {
-        on_tab_changed(i);
+        if (m_closing) {
+            on_tab_changed(i);
+        }
     });
+}
+
+NetworkEditDialog::~NetworkEditDialog() {
+    m_closing = true;
 }
 
 void NetworkEditDialog::on_tab_changed(unsigned index) {
     m_sel_changed.disconnect();
     Glib::RefPtr<Gtk::TreeSelection> selection;
-    m_selected_tab = index;
     switch (index) {
         case 0:
             selection = m_server_list.get_selection();
+            m_add_handler = [&] (core::Network &n) { on_add_server(n); };
+            m_remove_handler = [&] (core::Network &n) { on_remove_server(n); };
             break;
         case 1:
             selection = m_autojoin_list.get_selection();
+            m_add_handler = [&] (core::Network &n) { on_add_channel(n); };
+            m_remove_handler = [&] (core::Network &n) { on_remove_channel(n); };
             break;
         case 2:
             selection = m_connect_cmds_list.get_selection();
+            m_add_handler = [&] (core::Network &n) { on_add_command(n); };
+            m_remove_handler = [&] (core::Network &n) { on_remove_command(n); };
             break;
     }
-    on_selection_changed(selection);
+    m_sel_changed = on_selection_changed(selection);
 }
 
-void NetworkEditDialog::on_selection_changed(Glib::RefPtr<Gtk::TreeSelection> selection) {
+sigc::connection NetworkEditDialog::on_selection_changed(Glib::RefPtr<Gtk::TreeSelection> selection) {
     m_del_btn.set_sensitive(selection->get_selected());
-    m_sel_changed = selection->signal_changed().connect([=] () {
+    return selection->signal_changed().connect([=] () {
         m_del_btn.set_sensitive(selection->get_selected());
     });
 }
@@ -223,12 +235,12 @@ void NetworkEditDialog::edit(core::Network &network) {
 
     m_add_clicked.disconnect();
     m_add_clicked = m_add_btn.signal_clicked().connect([&] {
-        on_add(network);
+        m_add_handler(network);
     });
 
     m_del_clicked.disconnect();
     m_del_clicked = m_del_btn.signal_clicked().connect([&] {
-        on_remove(network);
+        m_remove_handler(network);
     });
 }
 
@@ -356,67 +368,57 @@ void NetworkEditDialog::on_command_edited(const Glib::ustring &s_path, const Gli
     }
 }
 
-void NetworkEditDialog::on_add(core::Network &network) {
-    switch (m_selected_tab) {
-        case 0: {
-            unsigned n = unsigned(network.servers.size());
-            network.servers.push_back(core::Server());
-            core::Server &server = network.servers.back();
-            server.hostname = "0.0.0.0";
-            auto row = *m_servers_model->append();
-            populate_server(row, server, n);
-            break;
-        }
-        case 1: {
-            network.autojoin_channels.push_back(core::Channel());
-            core::Channel &channel = network.autojoin_channels.back();
-            channel.name = "<channel>";
-            auto row = *m_channels_model->append();
-            populate_channel(row, channel);
-            break;
-        }
-        case 2: {
-            network.connect_commands.push_back("<command>");
-            std::string &cmd = network.connect_commands.back();
-            auto row = *m_commands_model->append();
-            populate_command(row, cmd);
-            break;
-        }
+void NetworkEditDialog::on_add_server(core::Network &network) {
+    unsigned n = unsigned(network.servers.size());
+    network.servers.push_back(core::Server());
+    core::Server &server = network.servers.back();
+    server.hostname = "0.0.0.0";
+    auto row = *m_servers_model->append();
+    populate_server(row, server, n);
+}
+
+void NetworkEditDialog::on_add_channel(core::Network &network) {
+    network.autojoin_channels.push_back(core::Channel());
+    core::Channel &channel = network.autojoin_channels.back();
+    channel.name = "<channel>";
+    auto row = *m_channels_model->append();
+    populate_channel(row, channel);
+}
+
+void NetworkEditDialog::on_add_command(core::Network &network) {
+    network.connect_commands.push_back("<command>");
+    std::string &cmd = network.connect_commands.back();
+    auto row = *m_commands_model->append();
+    populate_command(row, cmd);
+}
+
+void NetworkEditDialog::on_remove_server(core::Network &network) {
+    auto it = m_server_list.get_selection()->get_selected();
+    if (it) {
+        auto path = m_servers_model->get_path(it);
+        unsigned i = unsigned(path[0]);
+        network.servers.erase(network.servers.begin() + i);
+        m_servers_model->erase(it);
     }
 }
 
-void NetworkEditDialog::on_remove(core::Network &network) {
-    switch (m_selected_tab) {
-        case 0: {
-            auto it = m_server_list.get_selection()->get_selected();
-            if (it) {
-                auto path = m_servers_model->get_path(it);
-                unsigned i = unsigned(path[0]);
-                network.servers.erase(network.servers.begin() + i);
-                m_servers_model->erase(it);
-            }
-            break;
-        }
-        case 1: {
-            auto it = m_autojoin_list.get_selection()->get_selected();
-            if (it) {
-                auto path = m_channels_model->get_path(it);
-                unsigned i = unsigned(path[0]);
-                network.autojoin_channels.erase(network.autojoin_channels.begin() + i);
-                m_channels_model->erase(it);
-            }
-            break;
-        }
-        case 2: {
-            auto it = m_connect_cmds_list.get_selection()->get_selected();
-            if (it) {
-                auto path = m_commands_model->get_path(it);
-                unsigned i = unsigned(path[0]);
-                network.connect_commands.erase(network.connect_commands.begin() + i);
-                m_commands_model->erase(it);
-            }
-            break;
-        }
+void NetworkEditDialog::on_remove_channel(core::Network &network) {
+    auto it = m_autojoin_list.get_selection()->get_selected();
+    if (it) {
+        auto path = m_channels_model->get_path(it);
+        unsigned i = unsigned(path[0]);
+        network.autojoin_channels.erase(network.autojoin_channels.begin() + i);
+        m_channels_model->erase(it);
+    }
+}
+
+void NetworkEditDialog::on_remove_command(core::Network &network) {
+    auto it = m_connect_cmds_list.get_selection()->get_selected();
+    if (it) {
+        auto path = m_commands_model->get_path(it);
+        unsigned i = unsigned(path[0]);
+        network.connect_commands.erase(network.connect_commands.begin() + i);
+        m_commands_model->erase(it);
     }
 }
 
