@@ -196,7 +196,8 @@ void NetworkListDialog::on_toggle_favorite(core::DircConfig &config) {
         unsigned i = unsigned(path[0]);
         core::Network &network = config.networks[i];
         network.favorite = !network.favorite;
-        (*it)[m_net_list_columns.m_weight] = network.favorite ? 500 : 0;
+        auto row = *it;
+        populate_row(row, network);
     }
 }
 
