@@ -75,10 +75,6 @@ NetworkListDialog::NetworkListDialog() :
     m_net_actions.pack_start(m_sort_btn, Gtk::PACK_SHRINK);
     m_net_actions.pack_start(m_fav_btn, Gtk::PACK_SHRINK);
 
-    m_net_list.get_selection()->signal_changed().connect(
-        sigc::mem_fun(*this, &NetworkListDialog::on_selection_changed));
-    on_selection_changed();
-
     m_net_list_opts.set_spacing(8);
     m_net_list_opts.pack_start(m_skip_net_list, Gtk::PACK_SHRINK);
     m_net_list_opts.pack_start(m_filter_net_list, Gtk::PACK_SHRINK);
@@ -87,6 +83,18 @@ NetworkListDialog::NetworkListDialog() :
     m_actions.set_halign(Gtk::ALIGN_END);
     m_actions.pack_end(m_connect_btn);
     m_actions.pack_end(m_close_btn);
+
+    m_net_list.get_selection()->signal_changed().connect(
+        sigc::mem_fun(*this, &NetworkListDialog::on_selection_changed));
+    on_selection_changed();
+
+    m_connect_btn.signal_clicked().connect([&] () {
+        close();
+    });
+
+    m_close_btn.signal_clicked().connect([&] () {
+        close();
+    });
 }
 
 void NetworkListDialog::on_selection_changed() {
