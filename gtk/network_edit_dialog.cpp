@@ -16,10 +16,15 @@ ChannelColumns::ChannelColumns() {
     add(m_password);
 }
 
+CommandColumns::CommandColumns() {
+    add(m_command);
+}
+
 NetworkEditDialog::NetworkEditDialog() :
         server_pattern("\\s*((?:[A-z0-9-]+\\.)*[A-z0-9-]+)(?:/([0-9]*))?\\s*"),
         m_servers_model(Gtk::ListStore::create(m_server_columns)),
         m_channels_model(Gtk::ListStore::create(m_channel_columns)),
+        m_commands_model(Gtk::ListStore::create(m_command_columns)),
         m_server_lbl("Servers"),
         m_autojoin_lbl("Autojoin Channels"),
         m_connect_cmds_lbl("Connect Commands"),
@@ -91,6 +96,14 @@ NetworkEditDialog::NetworkEditDialog() :
     m_password_column.set_renderer(m_password_renderer, m_channel_columns.m_password);
     m_password_renderer.property_editable() = true;
     m_autojoin_list.append_column(m_password_column);
+
+    m_connect_cmds_list.set_model(m_commands_model);
+    m_connect_cmds_list.set_headers_visible(false);
+
+    m_command_column.pack_start(m_command_renderer);
+    m_command_column.set_renderer(m_command_renderer, m_command_columns.m_command);
+    m_command_renderer.property_editable() = true;
+    m_connect_cmds_list.append_column(m_command_column);
 
     m_user_info.set_row_spacing(8);
     m_user_info.set_column_spacing(8);
@@ -168,6 +181,14 @@ void NetworkEditDialog::edit(core::Network &network) {
         });
 
     populate_channels(network);
+
+    m_command_edited.disconnect();
+    m_command_edited = m_command_renderer.signal_edited().connect(
+        [&] (const Glib::ustring &path, const Glib::ustring &value) {
+            on_command_edited(path, value, network);
+        });
+
+    populate_commands(network);
 }
 
 void NetworkEditDialog::populate_servers(core::Network &network) {
@@ -193,6 +214,14 @@ void NetworkEditDialog::populate_channels(core::Network &network) {
         auto row = *m_channels_model->append();
         row[m_channel_columns.m_name] = it->name;
         row[m_channel_columns.m_password] = it->key;
+    }
+}
+
+void NetworkEditDialog::populate_commands(core::Network &network) {
+    m_commands_model->clear();
+    for (auto it = network.connect_commands.begin(); it != network.connect_commands.end(); it++) {
+        auto row = *m_commands_model->append();
+        row[m_command_columns.m_command] = *it;
     }
 }
 
@@ -256,6 +285,19 @@ void NetworkEditDialog::on_password_edited(const Glib::ustring &s_path, const Gl
         core::Channel &channel = network.autojoin_channels[i];
         (*it)[m_channel_columns.m_password] = password;
         channel.key = password;
+    }
+}
+
+void NetworkEditDialog::on_command_edited(const Glib::ustring &s_path, const Glib::ustring &value, core::Network &network) {
+    std::string command = value;
+    boost::trim(command);
+    if (!command.empty()) {
+        auto it = m_commands_model->get_iter(s_path);
+        auto path = m_commands_model->get_path(it);
+        unsigned i = unsigned(path[0]);
+        std::string &cmd = network.connect_commands[i];
+        (*it)[m_command_columns.m_command] = command;
+        cmd = command;
     }
 }
 
