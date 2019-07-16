@@ -146,6 +146,13 @@ void NetworkListDialog::edit(core::DircConfig &config) {
         on_toggle_favorite(config);
     });
 
+    m_skip_net_list.set_active(config.skip_list_on_startup);
+    m_skip_net_clicked.disconnect();
+    m_skip_net_clicked = m_skip_net_list.signal_clicked().connect([&] () {
+        config.skip_list_on_startup = m_skip_net_list.get_active();
+    });
+
+    m_filter_net_list.set_active(config.show_favorites);
     m_filter_clicked.disconnect();
     m_filter_clicked = m_filter_net_list.signal_clicked().connect([&] () {
         on_toggle_filter(config);

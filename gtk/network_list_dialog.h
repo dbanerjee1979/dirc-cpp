@@ -59,6 +59,7 @@ private:
     sigc::connection m_fav_clicked;
     Gtk::HBox m_net_list_opts;
     Gtk::CheckButton m_skip_net_list;
+    sigc::connection m_skip_net_clicked;
     Gtk::CheckButton m_filter_net_list;
     sigc::connection m_filter_clicked;
     Gtk::ButtonBox m_actions;
