@@ -108,7 +108,7 @@ void DircConfigBuilder::build_network(core::Network &network, const xml::Element
             network.login_method = build_login_method(child);
         }
         else if (boost::iequals(name, DircConfigElement::password)) {
-            network.password = boost::trim_copy(name);
+            network.password = boost::trim_copy(child.get_text());
         }
         else if (boost::iequals(name, DircConfigElement::charset)) {
             network.charset = build_charset(child);

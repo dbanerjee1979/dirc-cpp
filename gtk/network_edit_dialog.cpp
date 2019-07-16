@@ -174,6 +174,9 @@ NetworkEditDialog::NetworkEditDialog(core::LoginMethodFactory &login_method_fact
         row[m_login_method_columns.m_name] = *it;
         row[m_login_method_columns.m_label] = login_method_factory.find_login_method(*it)->description();
     }
+
+    m_password_fld.set_visibility(false);
+    m_password_fld.set_invisible_char('*');
 }
 
 NetworkEditDialog::~NetworkEditDialog() {
@@ -334,6 +337,12 @@ void NetworkEditDialog::edit(core::Network &network) {
     m_login_method_chgd.disconnect();
     m_login_method_chgd = m_login_method_picker.signal_changed().connect([&] () {
         network.login_method = m_login_method_picker.get_active_id();
+    });
+
+    m_password_fld.set_text(network.password);
+    m_password_chgd.disconnect();
+    m_password_chgd = m_password_fld.signal_changed().connect([&] () {
+        network.password = m_password_fld.get_text();
     });
 }
 
