@@ -37,8 +37,11 @@ public:
     void edit(core::Network &network);
 private:
     void populate_servers(core::Network &network);
+    void populate_server(Gtk::TreeRow &row, core::Server &server, unsigned i);
     void populate_channels(core::Network &network);
+    void populate_channel(Gtk::TreeRow &row, core::Channel &channel);
     void populate_commands(core::Network &network);
+    void populate_command(Gtk::TreeRow &row, std::string &command);
     void on_server_toggled(const Glib::ustring &path, core::Network &network);
     void on_server_edited(const Glib::ustring &path, const Glib::ustring &value, core::Network &network);
     void on_channel_edited(const Glib::ustring &path, const Glib::ustring &value, core::Network &network);
@@ -46,9 +49,11 @@ private:
     void on_command_edited(const Glib::ustring &path, const Glib::ustring &value, core::Network &network);
     void on_tab_changed(unsigned index);
     void on_selection_changed(Glib::RefPtr<Gtk::TreeSelection> selection);
+    void on_add(core::Network &network);
 
-    boost::regex server_pattern;
+    boost::regex m_server_pattern;
     int m_selected_server;
+    unsigned m_selected_tab;
     ServerColumns m_server_columns;
     ChannelColumns m_channel_columns;
     CommandColumns m_command_columns;
@@ -85,6 +90,7 @@ private:
     sigc::connection m_command_edited;
     Gtk::VBox m_edit_actions;
     Gtk::Button m_add_btn;
+    sigc::connection m_add_clicked;
     Gtk::Button m_del_btn;
     sigc::connection m_sel_changed;
     Gtk::CheckButton m_selected_server_only;

@@ -21,7 +21,8 @@ CommandColumns::CommandColumns() {
 }
 
 NetworkEditDialog::NetworkEditDialog() :
-        server_pattern("\\s*((?:[A-z0-9-]+\\.)*[A-z0-9-]+)(?:/([0-9]*))?\\s*"),
+        m_server_pattern("\\s*((?:[A-z0-9-]+\\.)*[A-z0-9-]+)(?:/([0-9]*))?\\s*"),
+        m_selected_tab(0),
         m_servers_model(Gtk::ListStore::create(m_server_columns)),
         m_channels_model(Gtk::ListStore::create(m_channel_columns)),
         m_commands_model(Gtk::ListStore::create(m_command_columns)),
@@ -157,6 +158,7 @@ NetworkEditDialog::NetworkEditDialog() :
 
 void NetworkEditDialog::on_tab_changed(unsigned index) {
     Glib::RefPtr<Gtk::TreeSelection> selection;
+    m_selected_tab = index;
     switch (index) {
         case 0:
             selection = m_server_list.get_selection();
@@ -172,11 +174,13 @@ void NetworkEditDialog::on_tab_changed(unsigned index) {
 }
 
 void NetworkEditDialog::on_selection_changed(Glib::RefPtr<Gtk::TreeSelection> selection) {
-    m_sel_changed.disconnect();
-    m_del_btn.set_sensitive(selection->get_selected());
-    m_sel_changed = selection->signal_changed().connect([=] () {
+    if (selection) {
+        m_sel_changed.disconnect();
         m_del_btn.set_sensitive(selection->get_selected());
-    });
+        m_sel_changed = selection->signal_changed().connect([=] () {
+            m_del_btn.set_sensitive(selection->get_selected());
+        });
+    }
 }
 
 void NetworkEditDialog::edit(core::Network &network) {
@@ -218,6 +222,11 @@ void NetworkEditDialog::edit(core::Network &network) {
         });
 
     populate_commands(network);
+
+    m_add_clicked.disconnect();
+    m_add_clicked = m_add_btn.signal_clicked().connect([&] {
+        on_add(network);
+    });
 }
 
 void NetworkEditDialog::populate_servers(core::Network &network) {
@@ -226,32 +235,46 @@ void NetworkEditDialog::populate_servers(core::Network &network) {
     unsigned i = 0;
     for (auto it = network.servers.begin(); it != network.servers.end(); it++, i++) {
         auto row = *m_servers_model->append();
-        row[m_server_columns.m_selected] = it->selected && m_selected_server == -1;
-        if (m_selected_server == -1) {
-            m_selected_server = int(i);
-        }
-        else {
-            it->selected = false;
-        }
-        row[m_server_columns.m_server] = it->hostname + (it->port > 0 ? "/" + std::to_string(it->port) : "");
+        populate_server(row, *it, i);
     }
+}
+
+void NetworkEditDialog::populate_server(Gtk::TreeRow &row, core::Server &server, unsigned i) {
+    row[m_server_columns.m_selected] = server.selected && m_selected_server == -1;
+    if (m_selected_server == -1) {
+        m_selected_server = int(i);
+    }
+    else {
+        server.selected = false;
+    }
+    row[m_server_columns.m_server] =
+            server.hostname +
+            (server.port > 0 ? "/" + std::to_string(server.port) : "");
 }
 
 void NetworkEditDialog::populate_channels(core::Network &network) {
     m_channels_model->clear();
     for (auto it = network.autojoin_channels.begin(); it != network.autojoin_channels.end(); it++) {
         auto row = *m_channels_model->append();
-        row[m_channel_columns.m_name] = it->name;
-        row[m_channel_columns.m_password] = it->key;
+        populate_channel(row, *it);
     }
+}
+
+void NetworkEditDialog::populate_channel(Gtk::TreeRow &row, core::Channel &channel) {
+    row[m_channel_columns.m_name] = channel.name;
+    row[m_channel_columns.m_password] = channel.key;
 }
 
 void NetworkEditDialog::populate_commands(core::Network &network) {
     m_commands_model->clear();
     for (auto it = network.connect_commands.begin(); it != network.connect_commands.end(); it++) {
         auto row = *m_commands_model->append();
-        row[m_command_columns.m_command] = *it;
+        populate_command(row, *it);
     }
+}
+
+void NetworkEditDialog::populate_command(Gtk::TreeRow &row, std::string &command) {
+    row[m_command_columns.m_command] = command;
 }
 
 void NetworkEditDialog::on_server_toggled(const Glib::ustring &s_path, core::Network &network) {
@@ -276,7 +299,7 @@ void NetworkEditDialog::on_server_toggled(const Glib::ustring &s_path, core::Net
 void NetworkEditDialog::on_server_edited(const Glib::ustring &path, const Glib::ustring &value, core::Network &network) {
     boost::smatch match;
     std::string server_name = value;
-    boost::regex_match(server_name, match, server_pattern);
+    boost::regex_match(server_name, match, m_server_pattern);
     if (!match.empty()) {
         auto it = m_servers_model->get_iter(path);
         auto path = m_servers_model->get_path(it);
@@ -327,6 +350,35 @@ void NetworkEditDialog::on_command_edited(const Glib::ustring &s_path, const Gli
         std::string &cmd = network.connect_commands[i];
         (*it)[m_command_columns.m_command] = command;
         cmd = command;
+    }
+}
+
+void NetworkEditDialog::on_add(core::Network &network) {
+    switch (m_selected_tab) {
+        case 0: {
+            unsigned n = unsigned(network.servers.size());
+            network.servers.push_back(core::Server());
+            core::Server &server = network.servers.back();
+            server.hostname = "0.0.0.0";
+            auto row = *m_servers_model->append();
+            populate_server(row, server, n);
+            break;
+        }
+        case 1: {
+            network.autojoin_channels.push_back(core::Channel());
+            core::Channel &channel = network.autojoin_channels.back();
+            channel.name = "<channel>";
+            auto row = *m_channels_model->append();
+            populate_channel(row, channel);
+            break;
+        }
+        case 2: {
+            network.connect_commands.push_back("<command>");
+            std::string &cmd = network.connect_commands.back();
+            auto row = *m_commands_model->append();
+            populate_command(row, cmd);
+            break;
+        }
     }
 }
 
