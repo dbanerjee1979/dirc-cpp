@@ -1,6 +1,8 @@
+#include <string>
+#include <boost/algorithm/string.hpp>
+#include <boost/regex.hpp>
 #include "network_edit_dialog.h"
 #include "network_list_dialog.h"
-#include <boost/regex.hpp>
 
 namespace gtk {
 
@@ -9,9 +11,15 @@ ServerColumns::ServerColumns() {
     add(m_server);
 }
 
+ChannelColumns::ChannelColumns() {
+    add(m_name);
+    add(m_password);
+}
+
 NetworkEditDialog::NetworkEditDialog() :
         server_pattern("\\s*((?:[A-z0-9-]+\\.)*[A-z0-9-]+)(?:/([0-9]*))?\\s*"),
         m_servers_model(Gtk::ListStore::create(m_server_columns)),
+        m_channels_model(Gtk::ListStore::create(m_channel_columns)),
         m_server_lbl("Servers"),
         m_autojoin_lbl("Autojoin Channels"),
         m_connect_cmds_lbl("Connect Commands"),
@@ -63,13 +71,26 @@ NetworkEditDialog::NetworkEditDialog() :
 
     m_server_selected_column.pack_start(m_server_selected_renderer);
     m_server_selected_column.set_renderer(m_server_selected_renderer, m_server_columns.m_selected);
-    m_server_renderer.property_editable() = true;
     m_server_list.append_column(m_server_selected_column);
 
     m_server_column.pack_start(m_server_renderer);
     m_server_column.set_renderer(m_server_renderer, m_server_columns.m_server);
     m_server_renderer.property_editable() = true;
     m_server_list.append_column(m_server_column);
+
+    m_autojoin_list.set_model(m_channels_model);
+
+    m_channel_column.set_title("Channel");
+    m_channel_column.pack_start(m_channel_renderer);
+    m_channel_column.set_renderer(m_channel_renderer, m_channel_columns.m_name);
+    m_channel_renderer.property_editable() = true;
+    m_autojoin_list.append_column(m_channel_column);
+
+    m_password_column.set_title("Password (Key)");
+    m_password_column.pack_start(m_password_renderer);
+    m_password_column.set_renderer(m_password_renderer, m_channel_columns.m_password);
+    m_password_renderer.property_editable() = true;
+    m_autojoin_list.append_column(m_password_column);
 
     m_user_info.set_row_spacing(8);
     m_user_info.set_column_spacing(8);
@@ -133,6 +154,20 @@ void NetworkEditDialog::edit(core::Network &network) {
         });
 
     populate_servers(network);
+
+    m_channel_edited.disconnect();
+    m_channel_edited = m_channel_renderer.signal_edited().connect(
+        [&] (const Glib::ustring &path, const Glib::ustring &value) {
+            on_channel_edited(path, value, network);
+        });
+
+    m_password_edited.disconnect();
+    m_password_edited = m_password_renderer.signal_edited().connect(
+        [&] (const Glib::ustring &path, const Glib::ustring &value) {
+            on_password_edited(path, value, network);
+        });
+
+    populate_channels(network);
 }
 
 void NetworkEditDialog::populate_servers(core::Network &network) {
@@ -149,6 +184,15 @@ void NetworkEditDialog::populate_servers(core::Network &network) {
             it->selected = false;
         }
         row[m_server_columns.m_server] = it->hostname + (it->port > 0 ? "/" + std::to_string(it->port) : "");
+    }
+}
+
+void NetworkEditDialog::populate_channels(core::Network &network) {
+    m_channels_model->clear();
+    for (auto it = network.autojoin_channels.begin(); it != network.autojoin_channels.end(); it++) {
+        auto row = *m_channels_model->append();
+        row[m_channel_columns.m_name] = it->name;
+        row[m_channel_columns.m_password] = it->key;
     }
 }
 
@@ -186,6 +230,32 @@ void NetworkEditDialog::on_server_edited(const Glib::ustring &path, const Glib::
         (*it)[m_server_columns.m_server] =
                 server.hostname +
                 (server.port == 0 ? "" : "/" + std::to_string(server.port));
+    }
+}
+
+void NetworkEditDialog::on_channel_edited(const Glib::ustring &s_path, const Glib::ustring &value, core::Network &network) {
+    std::string name = value;
+    boost::trim(name);
+    if (!name.empty() && name.find(" ") == std::string::npos) {
+        auto it = m_channels_model->get_iter(s_path);
+        auto path = m_channels_model->get_path(it);
+        unsigned i = unsigned(path[0]);
+        core::Channel &channel = network.autojoin_channels[i];
+        (*it)[m_channel_columns.m_name] = name;
+        channel.name = name;
+    }
+}
+
+void NetworkEditDialog::on_password_edited(const Glib::ustring &s_path, const Glib::ustring &value, core::Network &network) {
+    std::string password = value;
+    boost::trim(password);
+    if (password.find(" ") == std::string::npos) {
+        auto it = m_channels_model->get_iter(s_path);
+        auto path = m_channels_model->get_path(it);
+        unsigned i = unsigned(path[0]);
+        core::Channel &channel = network.autojoin_channels[i];
+        (*it)[m_channel_columns.m_password] = password;
+        channel.key = password;
     }
 }
 

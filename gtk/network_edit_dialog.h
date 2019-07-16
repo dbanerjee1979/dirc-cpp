@@ -16,18 +16,30 @@ public:
     Gtk::TreeModelColumn<std::string> m_server;
 };
 
+class ChannelColumns : public Gtk::TreeModel::ColumnRecord {
+public:
+    ChannelColumns();
+
+    Gtk::TreeModelColumn<std::string> m_name;
+    Gtk::TreeModelColumn<std::string> m_password;
+};
+
 class NetworkEditDialog : public Gtk::Window {
 public:
     NetworkEditDialog();
     void edit(core::Network &network);
 private:
     void populate_servers(core::Network &network);
+    void populate_channels(core::Network &network);
     void on_server_toggled(const Glib::ustring &path, core::Network &network);
     void on_server_edited(const Glib::ustring &path, const Glib::ustring &value, core::Network &network);
+    void on_channel_edited(const Glib::ustring &path, const Glib::ustring &value, core::Network &network);
+    void on_password_edited(const Glib::ustring &path, const Glib::ustring &value, core::Network &network);
 
     boost::regex server_pattern;
     int m_selected_server;
     ServerColumns m_server_columns;
+    ChannelColumns m_channel_columns;
     Glib::RefPtr<Gtk::ListStore> m_servers_model;
     Glib::RefPtr<Gtk::ListStore> m_channels_model;
     Glib::RefPtr<Gtk::ListStore> m_commands_model;
@@ -48,7 +60,11 @@ private:
     Gtk::ScrolledWindow m_autojoin_list_scroller;
     Gtk::TreeView m_autojoin_list;
     Gtk::TreeViewColumn m_channel_column;
+    Gtk::CellRendererText m_channel_renderer;
+    sigc::connection m_channel_edited;
     Gtk::TreeViewColumn m_password_column;
+    Gtk::CellRendererText m_password_renderer;
+    sigc::connection m_password_edited;
     Gtk::Label m_connect_cmds_lbl;
     Gtk::ScrolledWindow m_connect_cmds_list_scroller;
     Gtk::TreeView m_connect_cmds_list;
