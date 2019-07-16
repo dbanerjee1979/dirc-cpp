@@ -1,5 +1,9 @@
+#include <functional>
+#include <algorithm>
 #include <boost/algorithm/string.hpp>
 #include "network_list_dialog.h"
+
+using namespace std::placeholders;
 
 namespace gtk {
 
@@ -117,61 +121,96 @@ void NetworkListDialog::edit(core::DircConfig &config) {
     });
 
     m_net_name_edited.disconnect();
-    m_net_name_edited = m_net_name_renderer.signal_edited().connect(
-        [&] (const Glib::ustring &path, const Glib::ustring &text) {
-            std::string name = text;
-            boost::trim(name);
-            if (name.length() > 0) {
-                auto it = m_net_list_model->get_iter(path);
-                auto path = m_net_list_model->get_path(it);
-                unsigned i = unsigned(path[0]);
-                (*it)[m_net_list_columns.m_name] = name;
-                config.networks[i].name = name;
-            }
-        });
+    m_net_name_edited = m_net_name_renderer.signal_edited().connect([&] (const Glib::ustring &path, const Glib::ustring &text) {
+        on_name_edited(path, text, config);
+    });
 
     m_add_clicked.disconnect();
     m_add_clicked = m_add_btn.signal_clicked().connect([&] () {
-        config.networks.push_back(core::Network());
-        core::Network network = config.networks.back();
-        network.name = "New Network";
-        network.favorite = false;
-        Gtk::TreeModel::Row row = *m_net_list_model->append();
-        row[m_net_list_columns.m_name] = network.name;
-        row[m_net_list_columns.m_weight] = 0;
+        on_network_added(config);
     });
 
     m_del_clicked.disconnect();
     m_del_clicked = m_del_btn.signal_clicked().connect([&] () {
-        auto it = m_net_list.get_selection()->get_selected();
-        if (it) {
-            auto path = m_net_list_model->get_path(it);
-            unsigned i = unsigned(path[0]);
-            config.networks.erase(config.networks.begin() + i);
-            m_net_list_model->erase(it);
-        }
+        on_network_removed(config);
+    });
+
+    m_sort_clicked.disconnect();
+    m_sort_clicked = m_sort_btn.signal_clicked().connect([&] () {
+        on_sort_networks(config);
     });
 
     m_fav_clicked.disconnect();
     m_fav_clicked = m_fav_btn.signal_clicked().connect([&] () {
-        auto it = m_net_list.get_selection()->get_selected();
-        if (it) {
-            auto path = m_net_list_model->get_path(it);
-            unsigned i = unsigned(path[0]);
-            core::Network &network = config.networks[i];
-            network.favorite = !network.favorite;
-            (*it)[m_net_list_columns.m_weight] = network.favorite ? 500 : 0;
-        }
+        on_toggle_favorite(config);
     });
 
-    m_net_list_model->clear();
-    for (auto it = config.networks.begin(); it != config.networks.end(); it++) {
-        Gtk::TreeModel::Row row = *m_net_list_model->append();
-        row[m_net_list_columns.m_name] = it->name;
-        row[m_net_list_columns.m_weight] = it->favorite ? 500 : 0;
-    }
+    populate_list(config);
 
     show_all();
+}
+
+void NetworkListDialog::on_name_edited(const Glib::ustring &path, const Glib::ustring &text, core::DircConfig &config) {
+    std::string name = text;
+    boost::trim(name);
+    if (name.length() > 0) {
+        auto it = m_net_list_model->get_iter(path);
+        auto path = m_net_list_model->get_path(it);
+        unsigned i = unsigned(path[0]);
+        (*it)[m_net_list_columns.m_name] = name;
+        config.networks[i].name = name;
+    }
+}
+
+void NetworkListDialog::on_network_added(core::DircConfig &config) {
+    config.networks.push_back(core::Network());
+    core::Network network = config.networks.back();
+    network.name = "New Network";
+    network.favorite = false;
+    auto row = *m_net_list_model->append();
+    populate_row(row, network);
+}
+
+void NetworkListDialog::on_network_removed(core::DircConfig &config) {
+    auto it = m_net_list.get_selection()->get_selected();
+    if (it) {
+        auto path = m_net_list_model->get_path(it);
+        unsigned i = unsigned(path[0]);
+        config.networks.erase(config.networks.begin() + i);
+        m_net_list_model->erase(it);
+    }
+}
+
+void NetworkListDialog::on_sort_networks(core::DircConfig &config) {
+    std::sort(config.networks.begin(), config.networks.end(),
+            [&] (const core::Network &n1, const core::Network &n2) {
+                return boost::ilexicographical_compare(n1.name, n2.name);
+            });
+    populate_list(config);
+}
+
+void NetworkListDialog::on_toggle_favorite(core::DircConfig &config) {
+    auto it = m_net_list.get_selection()->get_selected();
+    if (it) {
+        auto path = m_net_list_model->get_path(it);
+        unsigned i = unsigned(path[0]);
+        core::Network &network = config.networks[i];
+        network.favorite = !network.favorite;
+        (*it)[m_net_list_columns.m_weight] = network.favorite ? 500 : 0;
+    }
+}
+
+void NetworkListDialog::populate_list(core::DircConfig &config) {
+    m_net_list_model->clear();
+    for (auto it = config.networks.begin(); it != config.networks.end(); it++) {
+        auto row = *m_net_list_model->append();
+        populate_row(row, *it);
+    }
+}
+
+void NetworkListDialog::populate_row(Gtk::TreeModel::Row &row, core::Network &network) {
+    row[m_net_list_columns.m_name] = network.name;
+    row[m_net_list_columns.m_weight] = network.favorite ? 500 : 0;
 }
 
 }

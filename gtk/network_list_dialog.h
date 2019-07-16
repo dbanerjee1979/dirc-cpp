@@ -21,6 +21,13 @@ public:
     static void set_margins(Gtk::Widget &w);
 private:
     void on_selection_changed();
+    void on_name_edited(const Glib::ustring &path, const Glib::ustring &text, core::DircConfig &config);
+    void on_network_added(core::DircConfig &config);
+    void on_network_removed(core::DircConfig &config);
+    void on_sort_networks(core::DircConfig &config);
+    void on_toggle_favorite(core::DircConfig &config);
+    void populate_list(core::DircConfig &config);
+    void populate_row(Gtk::TreeModel::Row &row, core::Network &network);
 
     Gtk::VBox m_contents;
     Gtk::Grid m_user_info;
@@ -45,6 +52,7 @@ private:
     sigc::connection m_del_clicked;
     Gtk::Button m_edit_btn;
     Gtk::Button m_sort_btn;
+    sigc::connection m_sort_clicked;
     Gtk::Button m_fav_btn;
     sigc::connection m_fav_clicked;
     Gtk::HBox m_net_list_opts;
