@@ -331,7 +331,8 @@ void NetworkEditDialog::edit(core::Network &network) {
     });
 
     m_login_method_picker.set_active_id(network.login_method);
-    m_login_method_picker.signal_changed().connect([&] () {
+    m_login_method_chgd.disconnect();
+    m_login_method_chgd = m_login_method_picker.signal_changed().connect([&] () {
         network.login_method = m_login_method_picker.get_active_id();
     });
 }

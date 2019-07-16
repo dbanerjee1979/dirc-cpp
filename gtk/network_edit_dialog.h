@@ -145,6 +145,7 @@ private:
     sigc::connection m_username_chgd;
     Gtk::Label m_login_method_lbl;
     Gtk::ComboBox m_login_method_picker;
+    sigc::connection m_login_method_chgd;
     Gtk::Label m_password_lbl;
     Gtk::Entry m_password_fld;
     Gtk::Label m_charset_lbl;
