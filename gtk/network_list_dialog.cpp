@@ -144,6 +144,11 @@ void NetworkListDialog::edit(core::DircConfig &config) {
         on_network_removed(config);
     });
 
+    m_edit_clicked.disconnect();
+    m_edit_clicked = m_edit_btn.signal_clicked().connect([&] () {
+        on_network_edit(config);
+    });
+
     m_sort_clicked.disconnect();
     m_sort_clicked = m_sort_btn.signal_clicked().connect([&] () {
         on_sort_networks(config);
@@ -203,6 +208,13 @@ void NetworkListDialog::on_network_removed(core::DircConfig &config) {
             (*rit)[m_net_list_columns.m_index] = i - 1;
         }
         m_net_list_model->erase(it);
+    }
+}
+
+void NetworkListDialog::on_network_edit(core::DircConfig &config) {
+    auto it = m_net_list.get_selection()->get_selected();
+    if (it) {
+        m_edit_dialog.show_all();
     }
 }
 

@@ -3,6 +3,7 @@
 
 #include <gtkmm.h>
 #include <core/dirc_config.h>
+#include "network_edit_dialog.h"
 
 namespace gtk {
 
@@ -25,6 +26,7 @@ private:
     void on_name_edited(const Glib::ustring &path, const Glib::ustring &text, core::DircConfig &config);
     void on_network_added(core::DircConfig &config);
     void on_network_removed(core::DircConfig &config);
+    void on_network_edit(core::DircConfig &config);
     void on_sort_networks(core::DircConfig &config);
     void on_toggle_favorite(core::DircConfig &config);
     void on_toggle_filter(core::DircConfig &config);
@@ -53,6 +55,7 @@ private:
     Gtk::Button m_del_btn;
     sigc::connection m_del_clicked;
     Gtk::Button m_edit_btn;
+    sigc::connection m_edit_clicked;
     Gtk::Button m_sort_btn;
     sigc::connection m_sort_clicked;
     Gtk::Button m_fav_btn;
@@ -65,6 +68,7 @@ private:
     Gtk::ButtonBox m_actions;
     Gtk::Button m_connect_btn;
     Gtk::Button m_close_btn;
+    NetworkEditDialog m_edit_dialog;
 };
 
 }

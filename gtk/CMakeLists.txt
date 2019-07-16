@@ -9,6 +9,7 @@ include_directories(
 add_library(gtk
     main.cpp
     network_list_dialog.cpp
+    network_edit_dialog.cpp
     )
 
 target_link_libraries(
