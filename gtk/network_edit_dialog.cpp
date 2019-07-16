@@ -156,7 +156,6 @@ NetworkEditDialog::NetworkEditDialog() :
 }
 
 void NetworkEditDialog::on_tab_changed(unsigned index) {
-    m_sel_changed.disconnect();
     Glib::RefPtr<Gtk::TreeSelection> selection;
     switch (index) {
         case 0:
@@ -173,6 +172,7 @@ void NetworkEditDialog::on_tab_changed(unsigned index) {
 }
 
 void NetworkEditDialog::on_selection_changed(Glib::RefPtr<Gtk::TreeSelection> selection) {
+    m_sel_changed.disconnect();
     m_del_btn.set_sensitive(selection->get_selected());
     m_sel_changed = selection->signal_changed().connect([=] () {
         m_del_btn.set_sensitive(selection->get_selected());
