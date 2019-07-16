@@ -44,6 +44,7 @@ private:
     void populate_channel(Gtk::TreeRow &row, core::Channel &channel);
     void populate_commands(core::Network &network);
     void populate_command(Gtk::TreeRow &row, std::string &command);
+    void on_global_user_info();
     void on_server_toggled(const Glib::ustring &path, core::Network &network);
     void on_server_edited(const Glib::ustring &path, const Glib::ustring &value, core::Network &network);
     void on_channel_edited(const Glib::ustring &path, const Glib::ustring &value, core::Network &network);

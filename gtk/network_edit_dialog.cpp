@@ -278,11 +278,13 @@ void NetworkEditDialog::edit(core::Network &network) {
             network.accept_invalid_ssl_cert = m_accept_invalid_cert.get_active();
         });
 
+    on_global_user_info();
     m_use_global_user_info.set_active(network.use_global_user_info);
     m_use_global_user_info_toggled.disconnect();
     m_use_global_user_info_toggled = m_use_global_user_info.signal_toggled().connect(
         [&] () {
             network.use_global_user_info = m_use_global_user_info.get_active();
+            on_global_user_info();
         });
 }
 
@@ -332,6 +334,18 @@ void NetworkEditDialog::populate_commands(core::Network &network) {
 
 void NetworkEditDialog::populate_command(Gtk::TreeRow &row, std::string &command) {
     row[m_command_columns.m_command] = command;
+}
+
+void NetworkEditDialog::on_global_user_info() {
+    bool enabled = !m_use_global_user_info.get_active();
+    m_nickname_lbl.set_sensitive(enabled);
+    m_nickname_fld.set_sensitive(enabled);
+    m_nickname_2_lbl.set_sensitive(enabled);
+    m_nickname_2_fld.set_sensitive(enabled);
+    m_realname_lbl.set_sensitive(enabled);
+    m_realname_fld.set_sensitive(enabled);
+    m_username_lbl.set_sensitive(enabled);
+    m_username_lbl.set_sensitive(enabled);
 }
 
 void NetworkEditDialog::on_server_toggled(const Glib::ustring &s_path, core::Network &network) {
