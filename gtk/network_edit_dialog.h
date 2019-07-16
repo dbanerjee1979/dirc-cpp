@@ -106,11 +106,17 @@ private:
     sigc::connection m_sel_changed;
     sigc::connection m_del_clicked;
     Gtk::CheckButton m_selected_server_only;
+    sigc::connection m_selected_server_only_toggled;
     Gtk::CheckButton m_auto_conn_network;
+    sigc::connection m_auto_conn_network_toggled;
     Gtk::CheckButton m_bypass_proxy;
+    sigc::connection m_bypass_proxy_toggled;
     Gtk::CheckButton m_use_ssl;
+    sigc::connection m_use_ssl_toggled;
     Gtk::CheckButton m_accept_invalid_cert;
+    sigc::connection m_accept_invalid_cert_toggled;
     Gtk::CheckButton m_use_global_user_info;
+    sigc::connection m_use_global_user_info_toggled;
     Gtk::Grid m_user_info;
     Gtk::Label m_nickname_lbl;
     Gtk::Entry m_nickname_fld;

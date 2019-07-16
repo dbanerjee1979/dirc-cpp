@@ -242,6 +242,48 @@ void NetworkEditDialog::edit(core::Network &network) {
     m_del_clicked = m_del_btn.signal_clicked().connect([&] {
         m_remove_handler(network);
     });
+
+    m_selected_server_only.set_active(network.connect_selected_server_only);
+    m_selected_server_only_toggled.disconnect();
+    m_selected_server_only_toggled = m_selected_server_only.signal_toggled().connect(
+        [&] () {
+            network.connect_selected_server_only = m_selected_server_only.get_active();
+        });
+
+    m_auto_conn_network.set_active(network.connect_automatically);
+    m_auto_conn_network_toggled.disconnect();
+    m_auto_conn_network_toggled = m_auto_conn_network.signal_toggled().connect(
+        [&] () {
+            network.connect_automatically = m_auto_conn_network.get_active();
+        });
+
+    m_bypass_proxy.set_active(network.bypass_proxy);
+    m_bypass_proxy_toggled.disconnect();
+    m_bypass_proxy_toggled = m_bypass_proxy.signal_toggled().connect(
+        [&] () {
+            network.bypass_proxy = m_bypass_proxy.get_active();
+        });
+
+    m_use_ssl.set_active(network.use_ssl);
+    m_use_ssl_toggled.disconnect();
+    m_use_ssl_toggled = m_use_ssl.signal_toggled().connect(
+        [&] () {
+            network.use_ssl = m_use_ssl.get_active();
+        });
+
+    m_accept_invalid_cert.set_active(network.accept_invalid_ssl_cert);
+    m_accept_invalid_cert_toggled.disconnect();
+    m_accept_invalid_cert_toggled = m_accept_invalid_cert.signal_toggled().connect(
+        [&] () {
+            network.accept_invalid_ssl_cert = m_accept_invalid_cert.get_active();
+        });
+
+    m_use_global_user_info.set_active(network.use_global_user_info);
+    m_use_global_user_info_toggled.disconnect();
+    m_use_global_user_info_toggled = m_use_global_user_info.signal_toggled().connect(
+        [&] () {
+            network.use_global_user_info = m_use_global_user_info.get_active();
+        });
 }
 
 void NetworkEditDialog::populate_servers(core::Network &network) {
