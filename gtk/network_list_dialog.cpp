@@ -1,9 +1,16 @@
+#include <boost/algorithm/string.hpp>
 #include "network_list_dialog.h"
 
 namespace gtk {
 
+NetListColumns::NetListColumns() {
+    add(m_name);
+    add(m_weight);
+}
+
 NetworkListDialog::NetworkListDialog() :
         m_username_lbl("Username"),
+        m_net_list_model(Gtk::ListStore::create(m_net_list_columns)),
         m_add_btn("Add"),
         m_del_btn("Remove"),
         m_edit_btn("Edit..."),
@@ -48,12 +55,24 @@ NetworkListDialog::NetworkListDialog() :
     m_net_list_scroller.add(m_net_list);
     m_net_list_contents.pack_start(m_net_actions, Gtk::PACK_SHRINK);
 
+    m_net_list.set_headers_visible(false);
+    m_net_name_column.pack_start(m_net_name_renderer);
+    m_net_name_column.set_renderer(m_net_name_renderer, m_net_list_columns.m_name);
+    m_net_name_column.add_attribute(m_net_name_renderer.property_weight(), m_net_list_columns.m_weight);
+    m_net_list.append_column(m_net_name_column);
+    m_net_list.set_model(m_net_list_model);
+    m_net_name_renderer.property_editable() = true;
+
     m_net_actions.set_spacing(8);
     m_net_actions.pack_start(m_add_btn, Gtk::PACK_SHRINK);
     m_net_actions.pack_start(m_del_btn, Gtk::PACK_SHRINK);
     m_net_actions.pack_start(m_edit_btn, Gtk::PACK_SHRINK);
     m_net_actions.pack_start(m_sort_btn, Gtk::PACK_SHRINK);
     m_net_actions.pack_start(m_fav_btn, Gtk::PACK_SHRINK);
+
+    m_net_list.get_selection()->signal_changed().connect(
+        sigc::mem_fun(*this, &NetworkListDialog::on_selection_changed));
+    on_selection_changed();
 
     m_net_list_opts.set_spacing(8);
     m_net_list_opts.pack_start(m_skip_net_list, Gtk::PACK_SHRINK);
@@ -65,6 +84,14 @@ NetworkListDialog::NetworkListDialog() :
     m_actions.pack_end(m_close_btn);
 }
 
+void NetworkListDialog::on_selection_changed() {
+    auto it = m_net_list.get_selection()->get_selected();
+    bool enabled = it;
+    m_del_btn.set_sensitive(enabled);
+    m_edit_btn.set_sensitive(enabled);
+    m_fav_btn.set_sensitive(enabled);
+}
+
 void NetworkListDialog::set_margins(Gtk::Widget &w) {
     w.set_margin_top(8);
     w.set_margin_bottom(8);
@@ -73,6 +100,77 @@ void NetworkListDialog::set_margins(Gtk::Widget &w) {
 }
 
 void NetworkListDialog::edit(core::DircConfig &config) {
+    for (auto i = config.nicknames.size(); i < 3; i++) {
+        config.nicknames.push_back("");
+    }
+    for (unsigned i = 0; i < 3; i++) {
+        m_nickname_flds[i].set_text(config.nicknames[i]);
+        m_nickname_chgd[i].disconnect();
+        m_nickname_chgd[i] = m_nickname_flds[i].signal_changed().connect([&, i] () {
+            config.nicknames[i] = m_nickname_flds[i].get_text();
+        });
+    }
+    m_username_fld.set_text(config.username);
+    m_username_chgd.disconnect();
+    m_username_chgd = m_username_fld.signal_changed().connect([&] () {
+        config.username = m_username_fld.get_text();
+    });
+
+    m_net_name_edited.disconnect();
+    m_net_name_edited = m_net_name_renderer.signal_edited().connect(
+        [&] (const Glib::ustring &path, const Glib::ustring &text) {
+            std::string name = text;
+            boost::trim(name);
+            if (name.length() > 0) {
+                auto it = m_net_list_model->get_iter(path);
+                auto path = m_net_list_model->get_path(it);
+                unsigned i = unsigned(path[0]);
+                (*it)[m_net_list_columns.m_name] = name;
+                config.networks[i].name = name;
+            }
+        });
+
+    m_add_clicked.disconnect();
+    m_add_clicked = m_add_btn.signal_clicked().connect([&] () {
+        config.networks.push_back(core::Network());
+        core::Network network = config.networks.back();
+        network.name = "New Network";
+        network.favorite = false;
+        Gtk::TreeModel::Row row = *m_net_list_model->append();
+        row[m_net_list_columns.m_name] = network.name;
+        row[m_net_list_columns.m_weight] = 0;
+    });
+
+    m_del_clicked.disconnect();
+    m_del_clicked = m_del_btn.signal_clicked().connect([&] () {
+        auto it = m_net_list.get_selection()->get_selected();
+        if (it) {
+            auto path = m_net_list_model->get_path(it);
+            unsigned i = unsigned(path[0]);
+            config.networks.erase(config.networks.begin() + i);
+            m_net_list_model->erase(it);
+        }
+    });
+
+    m_fav_clicked.disconnect();
+    m_fav_clicked = m_fav_btn.signal_clicked().connect([&] () {
+        auto it = m_net_list.get_selection()->get_selected();
+        if (it) {
+            auto path = m_net_list_model->get_path(it);
+            unsigned i = unsigned(path[0]);
+            core::Network &network = config.networks[i];
+            network.favorite = !network.favorite;
+            (*it)[m_net_list_columns.m_weight] = network.favorite ? 500 : 0;
+        }
+    });
+
+    m_net_list_model->clear();
+    for (auto it = config.networks.begin(); it != config.networks.end(); it++) {
+        Gtk::TreeModel::Row row = *m_net_list_model->append();
+        row[m_net_list_columns.m_name] = it->name;
+        row[m_net_list_columns.m_weight] = it->favorite ? 500 : 0;
+    }
+
     show_all();
 }
 

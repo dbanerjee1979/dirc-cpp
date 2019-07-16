@@ -19,11 +19,12 @@ int main(int argc, char **argv) {
 
     gtk::NetworkListDialog dlg;
     dlg.edit(config);
-
-    xml::Document out_doc = xml.create_document("configuration");
-    config::DircConfigDocBuilder doc_builder(config, out_doc);
-    doc_builder.build();
-    out_doc.save_file("/tmp/test2.xml");
+    dlg.signal_hide().connect([&] () {
+        xml::Document out_doc = xml.create_document("configuration");
+        config::DircConfigDocBuilder doc_builder(config, out_doc);
+        doc_builder.build();
+        out_doc.save_file("/tmp/test2.xml");
+    });
 
     return app->run(dlg);
 }
