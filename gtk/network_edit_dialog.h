@@ -1,20 +1,49 @@
 #ifndef NETWORK_EDIT_DIALOG_H
 #define NETWORK_EDIT_DIALOG_H
 
+#include <string>
 #include <gtkmm.h>
+#include <boost/regex.hpp>
+#include <core/network.h>
 
 namespace gtk {
+
+class ServerColumns : public Gtk::TreeModel::ColumnRecord {
+public:
+    ServerColumns();
+
+    Gtk::TreeModelColumn<bool> m_selected;
+    Gtk::TreeModelColumn<std::string> m_server;
+};
 
 class NetworkEditDialog : public Gtk::Window {
 public:
     NetworkEditDialog();
+    void edit(core::Network &network);
 private:
+    void populate_servers(core::Network &network);
+    void on_server_toggled(const Glib::ustring &path, core::Network &network);
+    void on_server_edited(const Glib::ustring &path, const Glib::ustring &value, core::Network &network);
+
+    boost::regex server_pattern;
+    int m_selected_server;
+    ServerColumns m_server_columns;
+    Glib::RefPtr<Gtk::ListStore> m_servers_model;
+    Glib::RefPtr<Gtk::ListStore> m_channels_model;
+    Glib::RefPtr<Gtk::ListStore> m_commands_model;
+
     Gtk::VBox m_contents;
     Gtk::HBox m_tab_contents;
     Gtk::Notebook m_tabs;
     Gtk::Label m_server_lbl;
     Gtk::ScrolledWindow m_server_list_scroller;
     Gtk::TreeView m_server_list;
+    Gtk::TreeViewColumn m_server_selected_column;
+    Gtk::CellRendererToggle m_server_selected_renderer;
+    sigc::connection m_server_toggled;
+    Gtk::TreeViewColumn m_server_column;
+    Gtk::CellRendererText m_server_renderer;
+    sigc::connection m_server_edited;
     Gtk::Label m_autojoin_lbl;
     Gtk::ScrolledWindow m_autojoin_list_scroller;
     Gtk::TreeView m_autojoin_list;

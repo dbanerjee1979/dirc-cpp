@@ -1,9 +1,17 @@
 #include "network_edit_dialog.h"
 #include "network_list_dialog.h"
+#include <boost/regex.hpp>
 
 namespace gtk {
 
+ServerColumns::ServerColumns() {
+    add(m_selected);
+    add(m_server);
+}
+
 NetworkEditDialog::NetworkEditDialog() :
+        server_pattern("\\s*((?:[A-z0-9-]+\\.)*[A-z0-9-]+)(?:/([0-9]*))?\\s*"),
+        m_servers_model(Gtk::ListStore::create(m_server_columns)),
         m_server_lbl("Servers"),
         m_autojoin_lbl("Autojoin Channels"),
         m_connect_cmds_lbl("Connect Commands"),
@@ -50,6 +58,19 @@ NetworkEditDialog::NetworkEditDialog() :
     m_autojoin_list_scroller.add(m_autojoin_list);
     m_connect_cmds_list_scroller.add(m_connect_cmds_list);
 
+    m_server_list.set_model(m_servers_model);
+    m_server_list.set_headers_visible(false);
+
+    m_server_selected_column.pack_start(m_server_selected_renderer);
+    m_server_selected_column.set_renderer(m_server_selected_renderer, m_server_columns.m_selected);
+    m_server_renderer.property_editable() = true;
+    m_server_list.append_column(m_server_selected_column);
+
+    m_server_column.pack_start(m_server_renderer);
+    m_server_column.set_renderer(m_server_renderer, m_server_columns.m_server);
+    m_server_renderer.property_editable() = true;
+    m_server_list.append_column(m_server_column);
+
     m_user_info.set_row_spacing(8);
     m_user_info.set_column_spacing(8);
     m_user_info.attach(m_nickname_lbl, 0, 0, 1, 1);
@@ -93,6 +114,79 @@ NetworkEditDialog::NetworkEditDialog() :
     m_actions.set_spacing(8);
     m_actions.set_halign(Gtk::ALIGN_END);
     m_actions.pack_end(m_close_btn);
+}
+
+void NetworkEditDialog::edit(core::Network &network) {
+    set_title(network.name + " - dIRC");
+    show_all();
+
+    m_server_toggled.disconnect();
+    m_server_toggled = m_server_selected_renderer.signal_toggled().connect(
+        [&] (const Glib::ustring &path) {
+            on_server_toggled(path, network);
+        });
+
+    m_server_edited.disconnect();
+    m_server_edited = m_server_renderer.signal_edited().connect(
+        [&] (const Glib::ustring &path, const Glib::ustring &value) {
+            on_server_edited(path, value, network);
+        });
+
+    populate_servers(network);
+}
+
+void NetworkEditDialog::populate_servers(core::Network &network) {
+    m_servers_model->clear();
+    m_selected_server = -1;
+    unsigned i = 0;
+    for (auto it = network.servers.begin(); it != network.servers.end(); it++, i++) {
+        auto row = *m_servers_model->append();
+        row[m_server_columns.m_selected] = it->selected && m_selected_server == -1;
+        if (m_selected_server == -1) {
+            m_selected_server = int(i);
+        }
+        else {
+            it->selected = false;
+        }
+        row[m_server_columns.m_server] = it->hostname + (it->port > 0 ? "/" + std::to_string(it->port) : "");
+    }
+}
+
+void NetworkEditDialog::on_server_toggled(const Glib::ustring &s_path, core::Network &network) {
+    auto it = m_servers_model->get_iter(s_path);
+    auto path = m_servers_model->get_path(it);
+    unsigned i = unsigned(path[0]);
+    core::Server &server = network.servers[i];
+
+    if (m_selected_server != -1) {
+        auto oit = m_servers_model->children().begin();
+        auto nit = network.servers.begin();
+        for (int i = 0; i < m_selected_server; i++, oit++, nit++);
+        (*oit)[m_server_columns.m_selected] = false;
+        nit->selected = false;
+    }
+
+    server.selected = !server.selected;
+    m_selected_server = server.selected ? int(i) : -1;
+    (*it)[m_server_columns.m_selected] = server.selected;
+}
+
+void NetworkEditDialog::on_server_edited(const Glib::ustring &path, const Glib::ustring &value, core::Network &network) {
+    boost::smatch match;
+    std::string server_name = value;
+    boost::regex_match(server_name, match, server_pattern);
+    if (!match.empty()) {
+        auto it = m_servers_model->get_iter(path);
+        auto path = m_servers_model->get_path(it);
+        unsigned i = unsigned(path[0]);
+        core::Server &server = network.servers[i];
+        server.hostname = match[1];
+        std::string s_port = match[2];
+        server.port = s_port.empty() ? 0 : std::stoul(s_port);
+        (*it)[m_server_columns.m_server] =
+                server.hostname +
+                (server.port == 0 ? "" : "/" + std::to_string(server.port));
+    }
 }
 
 }
