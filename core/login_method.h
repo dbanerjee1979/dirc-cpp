@@ -7,6 +7,7 @@ class LoginMethod {
 public:
     LoginMethod() {};
     virtual ~LoginMethod() {};
+    virtual const std::string &description() const = 0;
 };
 
 }

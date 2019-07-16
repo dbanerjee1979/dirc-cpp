@@ -20,7 +20,13 @@ CommandColumns::CommandColumns() {
     add(m_command);
 }
 
-NetworkEditDialog::NetworkEditDialog() :
+LoginMethodColumns::LoginMethodColumns() {
+    add(m_name);
+    add(m_label);
+}
+
+NetworkEditDialog::NetworkEditDialog(core::LoginMethodFactory &login_method_factory) :
+        m_login_method_model(Gtk::ListStore::create(m_login_method_columns)),
         m_closing(false),
         m_server_pattern("\\s*((?:[A-z0-9-]+\\.)*[A-z0-9-]+)(?:/([0-9]*))?\\s*"),
         m_servers_model(Gtk::ListStore::create(m_server_columns)),
@@ -157,6 +163,17 @@ NetworkEditDialog::NetworkEditDialog() :
             on_tab_changed(i);
         }
     });
+
+    m_login_method_picker.set_model(m_login_method_model);
+    m_login_method_picker.set_id_column(m_login_method_columns.m_name.index());
+    m_login_method_picker.pack_start(m_login_method_columns.m_label);
+
+    std::vector<std::string> login_methods = login_method_factory.get_login_methods();
+    for (auto it = login_methods.begin(); it != login_methods.end(); it++) {
+        auto row = *(m_login_method_model->append());
+        row[m_login_method_columns.m_name] = *it;
+        row[m_login_method_columns.m_label] = login_method_factory.find_login_method(*it)->description();
+    }
 }
 
 NetworkEditDialog::~NetworkEditDialog() {
@@ -311,6 +328,11 @@ void NetworkEditDialog::edit(core::Network &network) {
     m_username_chgd.disconnect();
     m_username_chgd = m_username_fld.signal_changed().connect([&] () {
         network.realname = m_username_fld.get_text();
+    });
+
+    m_login_method_picker.set_active_id(network.login_method);
+    m_login_method_picker.signal_changed().connect([&] () {
+        network.login_method = m_login_method_picker.get_active_id();
     });
 }
 

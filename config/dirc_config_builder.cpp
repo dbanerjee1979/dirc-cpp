@@ -190,7 +190,7 @@ void DircConfigBuilder::build_user_info(core::Network &network, const xml::Eleme
 
 std::string DircConfigBuilder::build_login_method(const xml::Element &child) {
     std::string s_login_method = boost::trim_copy(child.get_text());
-    boost::optional<core::LoginMethod> login_method;
+    boost::optional<core::LoginMethod &> login_method;
     if (s_login_method.empty() || !(login_method = m_login_method_factory.find_login_method(s_login_method))) {
         return m_login_method_factory.get_default_method();
     }
@@ -201,7 +201,7 @@ std::string DircConfigBuilder::build_login_method(const xml::Element &child) {
 
 std::string DircConfigBuilder::build_charset(const xml::Element &child) {
     std::string s_charset = boost::trim_copy(child.get_text());
-    boost::optional<core::LoginMethod> login_method;
+    boost::optional<core::LoginMethod &> login_method;
     if (s_charset.empty() || !(login_method = m_login_method_factory.find_login_method(s_charset))) {
         return m_login_method_factory.get_default_method();
     }

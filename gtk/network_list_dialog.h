@@ -18,7 +18,7 @@ public:
 
 class NetworkListDialog : public Gtk::Window {
 public:
-    NetworkListDialog();
+    NetworkListDialog(core::LoginMethodFactory &login_method_factory);
     void edit(core::DircConfig &config);
     static void set_margins(Gtk::Widget &w);
 private:
@@ -33,6 +33,7 @@ private:
     void populate_list(core::DircConfig &config);
     void populate_row(Gtk::TreeModel::Row &row, core::Network &network);
 
+    core::LoginMethodFactory &m_login_method_factory;
     Gtk::VBox m_contents;
     Gtk::Grid m_user_info;
     Gtk::Label m_nickname_lbls[3];

@@ -6,6 +6,7 @@
 #include <gtkmm.h>
 #include <boost/regex.hpp>
 #include <core/network.h>
+#include <core/login_method_factory.h>
 
 namespace gtk {
 
@@ -32,9 +33,17 @@ public:
     Gtk::TreeModelColumn<std::string> m_command;
 };
 
+class LoginMethodColumns : public Gtk::TreeModel::ColumnRecord {
+public:
+    LoginMethodColumns();
+
+    Gtk::TreeModelColumn<std::string> m_name;
+    Gtk::TreeModelColumn<std::string> m_label;
+};
+
 class NetworkEditDialog : public Gtk::Window {
 public:
-    NetworkEditDialog();
+    NetworkEditDialog(core::LoginMethodFactory &login_method_factory);
     virtual ~NetworkEditDialog();
     void edit(core::Network &network);
 private:
@@ -60,6 +69,9 @@ private:
     void on_remove_server(core::Network &network);
     void on_remove_channel(core::Network &network);
     void on_remove_command(core::Network &network);
+
+    LoginMethodColumns m_login_method_columns;
+    Glib::RefPtr<Gtk::ListStore> m_login_method_model;
 
     bool m_closing;
     boost::regex m_server_pattern;
