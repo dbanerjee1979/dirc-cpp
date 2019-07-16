@@ -50,6 +50,7 @@ private:
     void on_tab_changed(unsigned index);
     void on_selection_changed(Glib::RefPtr<Gtk::TreeSelection> selection);
     void on_add(core::Network &network);
+    void on_remove(core::Network &network);
 
     boost::regex m_server_pattern;
     int m_selected_server;
@@ -93,6 +94,7 @@ private:
     sigc::connection m_add_clicked;
     Gtk::Button m_del_btn;
     sigc::connection m_sel_changed;
+    sigc::connection m_del_clicked;
     Gtk::CheckButton m_selected_server_only;
     Gtk::CheckButton m_auto_conn_network;
     Gtk::CheckButton m_bypass_proxy;

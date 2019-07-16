@@ -157,6 +157,7 @@ NetworkEditDialog::NetworkEditDialog() :
 }
 
 void NetworkEditDialog::on_tab_changed(unsigned index) {
+    m_sel_changed.disconnect();
     Glib::RefPtr<Gtk::TreeSelection> selection;
     m_selected_tab = index;
     switch (index) {
@@ -174,13 +175,10 @@ void NetworkEditDialog::on_tab_changed(unsigned index) {
 }
 
 void NetworkEditDialog::on_selection_changed(Glib::RefPtr<Gtk::TreeSelection> selection) {
-    if (selection) {
-        m_sel_changed.disconnect();
+    m_del_btn.set_sensitive(selection->get_selected());
+    m_sel_changed = selection->signal_changed().connect([=] () {
         m_del_btn.set_sensitive(selection->get_selected());
-        m_sel_changed = selection->signal_changed().connect([=] () {
-            m_del_btn.set_sensitive(selection->get_selected());
-        });
-    }
+    });
 }
 
 void NetworkEditDialog::edit(core::Network &network) {
@@ -226,6 +224,11 @@ void NetworkEditDialog::edit(core::Network &network) {
     m_add_clicked.disconnect();
     m_add_clicked = m_add_btn.signal_clicked().connect([&] {
         on_add(network);
+    });
+
+    m_del_clicked.disconnect();
+    m_del_clicked = m_del_btn.signal_clicked().connect([&] {
+        on_remove(network);
     });
 }
 
@@ -377,6 +380,41 @@ void NetworkEditDialog::on_add(core::Network &network) {
             std::string &cmd = network.connect_commands.back();
             auto row = *m_commands_model->append();
             populate_command(row, cmd);
+            break;
+        }
+    }
+}
+
+void NetworkEditDialog::on_remove(core::Network &network) {
+    switch (m_selected_tab) {
+        case 0: {
+            auto it = m_server_list.get_selection()->get_selected();
+            if (it) {
+                auto path = m_servers_model->get_path(it);
+                unsigned i = unsigned(path[0]);
+                network.servers.erase(network.servers.begin() + i);
+                m_servers_model->erase(it);
+            }
+            break;
+        }
+        case 1: {
+            auto it = m_autojoin_list.get_selection()->get_selected();
+            if (it) {
+                auto path = m_channels_model->get_path(it);
+                unsigned i = unsigned(path[0]);
+                network.autojoin_channels.erase(network.autojoin_channels.begin() + i);
+                m_channels_model->erase(it);
+            }
+            break;
+        }
+        case 2: {
+            auto it = m_connect_cmds_list.get_selection()->get_selected();
+            if (it) {
+                auto path = m_commands_model->get_path(it);
+                unsigned i = unsigned(path[0]);
+                network.connect_commands.erase(network.connect_commands.begin() + i);
+                m_commands_model->erase(it);
+            }
             break;
         }
     }
