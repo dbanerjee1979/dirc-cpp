@@ -288,6 +288,9 @@ void NetworkEditDialog::edit(core::Network &network) {
     bind(network.login_method, m_login_method_picker, m_login_method_chgd);
     bind(network.password, m_password_fld, m_password_chgd);
     bind(network.charset, m_charset_picker, m_charset_chgd);
+
+    m_close_btn.signal_clicked().connect(
+        sigc::mem_fun(*this, &NetworkListDialog::close));
 }
 
 void NetworkEditDialog::populate_servers(core::Network &network) {
