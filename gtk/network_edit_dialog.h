@@ -7,6 +7,7 @@
 #include <boost/regex.hpp>
 #include <core/network.h>
 #include <core/login_method_factory.h>
+#include <core/charset_factory.h>
 
 namespace gtk {
 
@@ -33,9 +34,9 @@ public:
     Gtk::TreeModelColumn<std::string> m_command;
 };
 
-class LoginMethodColumns : public Gtk::TreeModel::ColumnRecord {
+class PickerColumns : public Gtk::TreeModel::ColumnRecord {
 public:
-    LoginMethodColumns();
+    PickerColumns();
 
     Gtk::TreeModelColumn<std::string> m_name;
     Gtk::TreeModelColumn<std::string> m_label;
@@ -43,7 +44,8 @@ public:
 
 class NetworkEditDialog : public Gtk::Window {
 public:
-    NetworkEditDialog(core::LoginMethodFactory &login_method_factory);
+    NetworkEditDialog(core::LoginMethodFactory &login_method_factory,
+                      core::CharsetFactory &charset_factory);
     virtual ~NetworkEditDialog();
     void edit(core::Network &network);
 private:
@@ -70,8 +72,9 @@ private:
     void on_remove_channel(core::Network &network);
     void on_remove_command(core::Network &network);
 
-    LoginMethodColumns m_login_method_columns;
+    PickerColumns m_picker_columns;
     Glib::RefPtr<Gtk::ListStore> m_login_method_model;
+    Glib::RefPtr<Gtk::ListStore> m_charsets_model;
 
     bool m_closing;
     boost::regex m_server_pattern;
@@ -151,6 +154,7 @@ private:
     sigc::connection m_password_chgd;
     Gtk::Label m_charset_lbl;
     Gtk::ComboBox m_charset_picker;
+    sigc::connection m_charset_chgd;
     Gtk::HBox m_actions;
     Gtk::Button m_close_btn;
 };

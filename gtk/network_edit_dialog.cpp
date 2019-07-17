@@ -20,13 +20,15 @@ CommandColumns::CommandColumns() {
     add(m_command);
 }
 
-LoginMethodColumns::LoginMethodColumns() {
+PickerColumns::PickerColumns() {
     add(m_name);
     add(m_label);
 }
 
-NetworkEditDialog::NetworkEditDialog(core::LoginMethodFactory &login_method_factory) :
-        m_login_method_model(Gtk::ListStore::create(m_login_method_columns)),
+NetworkEditDialog::NetworkEditDialog(core::LoginMethodFactory &login_method_factory,
+                                     core::CharsetFactory &charset_factory) :
+        m_login_method_model(Gtk::ListStore::create(m_picker_columns)),
+        m_charsets_model(Gtk::ListStore::create(m_picker_columns)),
         m_closing(false),
         m_server_pattern("\\s*((?:[A-z0-9-]+\\.)*[A-z0-9-]+)(?:/([0-9]*))?\\s*"),
         m_servers_model(Gtk::ListStore::create(m_server_columns)),
@@ -165,14 +167,25 @@ NetworkEditDialog::NetworkEditDialog(core::LoginMethodFactory &login_method_fact
     });
 
     m_login_method_picker.set_model(m_login_method_model);
-    m_login_method_picker.set_id_column(m_login_method_columns.m_name.index());
-    m_login_method_picker.pack_start(m_login_method_columns.m_label);
+    m_login_method_picker.set_id_column(m_picker_columns.m_name.index());
+    m_login_method_picker.pack_start(m_picker_columns.m_label);
 
     std::vector<std::string> login_methods = login_method_factory.get_login_methods();
     for (auto it = login_methods.begin(); it != login_methods.end(); it++) {
         auto row = *(m_login_method_model->append());
-        row[m_login_method_columns.m_name] = *it;
-        row[m_login_method_columns.m_label] = login_method_factory.find_login_method(*it)->description();
+        row[m_picker_columns.m_name] = *it;
+        row[m_picker_columns.m_label] = login_method_factory.find_login_method(*it)->description();
+    }
+
+    m_charset_picker.set_model(m_charsets_model);
+    m_charset_picker.set_id_column(m_picker_columns.m_name.index());
+    m_charset_picker.pack_start(m_picker_columns.m_label);
+
+    std::vector<std::string> charsets = charset_factory.get_charsets();
+    for (auto it = charsets.begin(); it != charsets.end(); it++) {
+        auto row = *(m_charsets_model->append());
+        row[m_picker_columns.m_name] = *it;
+        row[m_picker_columns.m_label] = charset_factory.find_charset(*it)->description();
     }
 
     m_password_fld.set_visibility(false);
@@ -343,6 +356,12 @@ void NetworkEditDialog::edit(core::Network &network) {
     m_password_chgd.disconnect();
     m_password_chgd = m_password_fld.signal_changed().connect([&] () {
         network.password = m_password_fld.get_text();
+    });
+
+    m_charset_picker.set_active_id(network.charset);
+    m_charset_chgd.disconnect();
+    m_charset_chgd = m_charset_picker.signal_changed().connect([&] () {
+        network.charset = m_charset_picker.get_active_id();
     });
 }
 

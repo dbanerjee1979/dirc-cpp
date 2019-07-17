@@ -7,6 +7,7 @@ class Charset {
 public:
     Charset() {}
     virtual ~Charset() {}
+    virtual const std::string &description() const = 0;
 };
 
 }

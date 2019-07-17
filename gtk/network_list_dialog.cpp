@@ -13,8 +13,11 @@ NetListColumns::NetListColumns() {
     add(m_weight);
 }
 
-NetworkListDialog::NetworkListDialog(core::LoginMethodFactory &login_method_factory) :
+NetworkListDialog::NetworkListDialog(
+            core::LoginMethodFactory &login_method_factory,
+            core::CharsetFactory &charset_factory) :
         m_login_method_factory(login_method_factory),
+        m_charset_factory(charset_factory),
         m_username_lbl("Username"),
         m_net_list_model(Gtk::ListStore::create(m_net_list_columns)),
         m_add_btn("Add"),
@@ -26,7 +29,7 @@ NetworkListDialog::NetworkListDialog(core::LoginMethodFactory &login_method_fact
         m_filter_net_list("Show favorites only"),
         m_connect_btn("Connect"),
         m_close_btn("Close"),
-        m_edit_dialog(login_method_factory) {
+        m_edit_dialog(login_method_factory, charset_factory) {
     set_title("Network List - dIRC");
 
     m_nickname_lbls[0].set_text("Nickname");

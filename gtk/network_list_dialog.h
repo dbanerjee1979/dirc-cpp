@@ -3,6 +3,8 @@
 
 #include <gtkmm.h>
 #include <core/dirc_config.h>
+#include <core/login_method_factory.h>
+#include <core/charset_factory.h>
 #include "network_edit_dialog.h"
 
 namespace gtk {
@@ -18,7 +20,7 @@ public:
 
 class NetworkListDialog : public Gtk::Window {
 public:
-    NetworkListDialog(core::LoginMethodFactory &login_method_factory);
+    NetworkListDialog(core::LoginMethodFactory &login_method_factory, core::CharsetFactory &charset_factory);
     void edit(core::DircConfig &config);
     static void set_margins(Gtk::Widget &w);
 private:
@@ -34,6 +36,7 @@ private:
     void populate_row(Gtk::TreeModel::Row &row, core::Network &network);
 
     core::LoginMethodFactory &m_login_method_factory;
+    core::CharsetFactory &m_charset_factory;
     Gtk::VBox m_contents;
     Gtk::Grid m_user_info;
     Gtk::Label m_nickname_lbls[3];

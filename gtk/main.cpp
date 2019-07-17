@@ -17,7 +17,7 @@ int main(int argc, char **argv) {
     config::DircConfigBuilder config_builder(in_doc, login_method_factory, charset_factory);
     core::DircConfig config = config_builder.build();
 
-    gtk::NetworkListDialog dlg(login_method_factory);
+    gtk::NetworkListDialog dlg(login_method_factory, charset_factory);
     dlg.edit(config);
     dlg.signal_hide().connect([&] () {
         xml::Document out_doc = xml.create_document("configuration");

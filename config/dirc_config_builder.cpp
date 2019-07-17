@@ -201,9 +201,9 @@ std::string DircConfigBuilder::build_login_method(const xml::Element &child) {
 
 std::string DircConfigBuilder::build_charset(const xml::Element &child) {
     std::string s_charset = boost::trim_copy(child.get_text());
-    boost::optional<core::LoginMethod &> login_method;
-    if (s_charset.empty() || !(login_method = m_login_method_factory.find_login_method(s_charset))) {
-        return m_login_method_factory.get_default_method();
+    boost::optional<core::Charset &> charset;
+    if (s_charset.empty() || !(charset = m_charset_factory.find_charset(s_charset))) {
+        return m_charset_factory.get_default_method();
     }
     else {
         return s_charset;
