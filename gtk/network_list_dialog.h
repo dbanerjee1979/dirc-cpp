@@ -6,6 +6,7 @@
 #include <core/login_method_factory.h>
 #include <core/charset_factory.h>
 #include "network_edit_dialog.h"
+#include "binding.h"
 
 namespace gtk {
 
@@ -18,7 +19,7 @@ public:
     Gtk::TreeModelColumn<int> m_weight;
 };
 
-class NetworkListDialog : public Gtk::Window {
+class NetworkListDialog : public Gtk::Window, Binding {
 public:
     NetworkListDialog(core::LoginMethodFactory &login_method_factory, core::CharsetFactory &charset_factory);
     void edit(core::DircConfig &config);

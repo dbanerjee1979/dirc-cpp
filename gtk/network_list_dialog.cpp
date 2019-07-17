@@ -93,13 +93,9 @@ NetworkListDialog::NetworkListDialog(
         sigc::mem_fun(*this, &NetworkListDialog::on_selection_changed));
     on_selection_changed();
 
-    m_connect_btn.signal_clicked().connect([&] () {
-        close();
-    });
-
-    m_close_btn.signal_clicked().connect([&] () {
-        close();
-    });
+    auto close = sigc::mem_fun(*this, &NetworkListDialog::close);
+    m_connect_btn.signal_clicked().connect(close);
+    m_close_btn.signal_clicked().connect(close);
 }
 
 void NetworkListDialog::on_selection_changed() {
@@ -122,59 +118,36 @@ void NetworkListDialog::edit(core::DircConfig &config) {
         config.nicknames.push_back("");
     }
     for (unsigned i = 0; i < 3; i++) {
-        m_nickname_flds[i].set_text(config.nicknames[i]);
-        m_nickname_chgd[i].disconnect();
-        m_nickname_chgd[i] = m_nickname_flds[i].signal_changed().connect([&, i] () {
-            config.nicknames[i] = m_nickname_flds[i].get_text();
-        });
+        bind(config.nicknames[i], m_nickname_flds[i], m_nickname_chgd[i]);
     }
-    m_username_fld.set_text(config.username);
-    m_username_chgd.disconnect();
-    m_username_chgd = m_username_fld.signal_changed().connect([&] () {
-        config.username = m_username_fld.get_text();
-    });
+    bind(config.username, m_username_fld, m_username_chgd);
 
     m_net_name_edited.disconnect();
-    m_net_name_edited = m_net_name_renderer.signal_edited().connect([&] (const Glib::ustring &path, const Glib::ustring &text) {
-        on_name_edited(path, text, config);
-    });
+    m_net_name_edited = m_net_name_renderer.signal_edited().connect(
+        sigc::bind(sigc::mem_fun(*this, &NetworkListDialog::on_name_edited), std::ref(config)));
 
     m_add_clicked.disconnect();
-    m_add_clicked = m_add_btn.signal_clicked().connect([&] () {
-        on_network_added(config);
-    });
+    m_add_clicked = m_add_btn.signal_clicked().connect(
+        sigc::bind(sigc::mem_fun(*this, &NetworkListDialog::on_network_added), std::ref(config)));
 
     m_del_clicked.disconnect();
-    m_del_clicked = m_del_btn.signal_clicked().connect([&] () {
-        on_network_removed(config);
-    });
+    m_del_clicked = m_del_btn.signal_clicked().connect(
+        sigc::bind(sigc::mem_fun(*this, &NetworkListDialog::on_network_removed), std::ref(config)));
 
     m_edit_clicked.disconnect();
-    m_edit_clicked = m_edit_btn.signal_clicked().connect([&] () {
-        on_network_edit(config);
-    });
+    m_edit_clicked = m_edit_btn.signal_clicked().connect(
+        sigc::bind(sigc::mem_fun(*this, &NetworkListDialog::on_network_edit), std::ref(config)));
 
     m_sort_clicked.disconnect();
-    m_sort_clicked = m_sort_btn.signal_clicked().connect([&] () {
-        on_sort_networks(config);
-    });
+    m_sort_clicked = m_sort_btn.signal_clicked().connect(
+        sigc::bind(sigc::mem_fun(*this, &NetworkListDialog::on_sort_networks), std::ref(config)));
 
     m_fav_clicked.disconnect();
-    m_fav_clicked = m_fav_btn.signal_clicked().connect([&] () {
-        on_toggle_favorite(config);
-    });
+    m_fav_clicked = m_fav_btn.signal_clicked().connect(
+        sigc::bind(sigc::mem_fun(*this, &NetworkListDialog::on_toggle_favorite), std::ref(config)));
 
-    m_skip_net_list.set_active(config.skip_list_on_startup);
-    m_skip_net_clicked.disconnect();
-    m_skip_net_clicked = m_skip_net_list.signal_clicked().connect([&] () {
-        config.skip_list_on_startup = m_skip_net_list.get_active();
-    });
-
-    m_filter_net_list.set_active(config.show_favorites);
-    m_filter_clicked.disconnect();
-    m_filter_clicked = m_filter_net_list.signal_clicked().connect([&] () {
-        on_toggle_filter(config);
-    });
+    bind(config.skip_list_on_startup, m_skip_net_list, m_skip_net_clicked);
+    bind(config.show_favorites, m_filter_net_list, m_filter_clicked);
 
     populate_list(config);
 
