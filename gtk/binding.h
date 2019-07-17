@@ -10,6 +10,7 @@ class Binding {
 public:
     void bind(std::string &value, Gtk::Entry &w, sigc::connection &cn);
     void bind(bool &value, Gtk::CheckButton &w, sigc::connection &cn);
+    void bind(std::string &value, Gtk::ComboBox &w, sigc::connection &cn);
 };
 
 }

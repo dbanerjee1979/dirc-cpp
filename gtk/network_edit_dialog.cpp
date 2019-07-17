@@ -1,8 +1,11 @@
 #include <string>
+#include <functional>
 #include <boost/algorithm/string.hpp>
 #include <boost/regex.hpp>
 #include "network_edit_dialog.h"
 #include "network_list_dialog.h"
+
+using namespace std::placeholders;
 
 namespace gtk {
 
@@ -159,16 +162,15 @@ NetworkEditDialog::NetworkEditDialog(core::LoginMethodFactory &login_method_fact
     m_actions.pack_end(m_close_btn);
 
     on_selection_changed(m_server_list.get_selection());
-    on_tab_changed(0);
-    m_tabs.signal_switch_page().connect([&] (Widget *, guint i) {
-        if (m_closing) {
-            on_tab_changed(i);
-        }
-    });
+    on_tab_changed(nullptr, 0);
+    m_tabs.signal_switch_page().connect(
+        sigc::mem_fun(*this, &NetworkEditDialog::on_tab_changed));
 
     m_login_method_picker.set_model(m_login_method_model);
     m_login_method_picker.set_id_column(m_picker_columns.m_name.index());
     m_login_method_picker.pack_start(m_picker_columns.m_label);
+
+    m_use_global_user_info.signal_toggled().connect(sigc::mem_fun(*this, &NetworkEditDialog::on_global_user_info));
 
     std::vector<std::string> login_methods = login_method_factory.get_login_methods();
     for (auto it = login_methods.begin(); it != login_methods.end(); it++) {
@@ -196,24 +198,26 @@ NetworkEditDialog::~NetworkEditDialog() {
     m_closing = true;
 }
 
-void NetworkEditDialog::on_tab_changed(unsigned index) {
+void NetworkEditDialog::on_tab_changed(Gtk::Widget *, unsigned index) {
+    if (m_closing) return;
+
     m_sel_changed.disconnect();
     Glib::RefPtr<Gtk::TreeSelection> selection;
     switch (index) {
         case 0:
             selection = m_server_list.get_selection();
-            m_add_handler = [&] (core::Network &n) { on_add_server(n); };
-            m_remove_handler = [&] (core::Network &n) { on_remove_server(n); };
+            m_add_handler = std::bind(&NetworkEditDialog::on_add_server, this, _1);
+            m_remove_handler = std::bind(&NetworkEditDialog::on_remove_server, this, _1);
             break;
         case 1:
             selection = m_autojoin_list.get_selection();
-            m_add_handler = [&] (core::Network &n) { on_add_channel(n); };
-            m_remove_handler = [&] (core::Network &n) { on_remove_channel(n); };
+            m_add_handler = std::bind(&NetworkEditDialog::on_add_channel, this, _1);
+            m_remove_handler = std::bind(&NetworkEditDialog::on_remove_channel, this, _1);
             break;
         case 2:
             selection = m_connect_cmds_list.get_selection();
-            m_add_handler = [&] (core::Network &n) { on_add_command(n); };
-            m_remove_handler = [&] (core::Network &n) { on_remove_command(n); };
+            m_add_handler = std::bind(&NetworkEditDialog::on_add_command, this, _1);
+            m_remove_handler = std::bind(&NetworkEditDialog::on_remove_command, this, _1);
             break;
     }
     m_sel_changed = on_selection_changed(selection);
@@ -232,37 +236,27 @@ void NetworkEditDialog::edit(core::Network &network) {
 
     m_server_toggled.disconnect();
     m_server_toggled = m_server_selected_renderer.signal_toggled().connect(
-        [&] (const Glib::ustring &path) {
-            on_server_toggled(path, network);
-        });
+        sigc::bind(sigc::mem_fun(*this, &NetworkEditDialog::on_server_toggled), sigc::ref(network)));
 
     m_server_edited.disconnect();
     m_server_edited = m_server_renderer.signal_edited().connect(
-        [&] (const Glib::ustring &path, const Glib::ustring &value) {
-            on_server_edited(path, value, network);
-        });
+        sigc::bind(sigc::mem_fun(*this, &NetworkEditDialog::on_server_edited), sigc::ref(network)));
 
     populate_servers(network);
 
     m_channel_edited.disconnect();
     m_channel_edited = m_channel_renderer.signal_edited().connect(
-        [&] (const Glib::ustring &path, const Glib::ustring &value) {
-            on_channel_edited(path, value, network);
-        });
+        sigc::bind(sigc::mem_fun(*this, &NetworkEditDialog::on_channel_edited), sigc::ref(network)));
 
     m_password_edited.disconnect();
     m_password_edited = m_password_renderer.signal_edited().connect(
-        [&] (const Glib::ustring &path, const Glib::ustring &value) {
-            on_password_edited(path, value, network);
-        });
+        sigc::bind(sigc::mem_fun(*this, &NetworkEditDialog::on_password_edited), sigc::ref(network)));
 
     populate_channels(network);
 
     m_command_edited.disconnect();
     m_command_edited = m_command_renderer.signal_edited().connect(
-        [&] (const Glib::ustring &path, const Glib::ustring &value) {
-            on_command_edited(path, value, network);
-        });
+        sigc::bind(sigc::mem_fun(*this, &NetworkEditDialog::on_command_edited), sigc::ref(network)));
 
     populate_commands(network);
 
@@ -276,93 +270,24 @@ void NetworkEditDialog::edit(core::Network &network) {
         m_remove_handler(network);
     });
 
-    m_selected_server_only.set_active(network.connect_selected_server_only);
-    m_selected_server_only_toggled.disconnect();
-    m_selected_server_only_toggled = m_selected_server_only.signal_toggled().connect(
-        [&] () {
-            network.connect_selected_server_only = m_selected_server_only.get_active();
-        });
-
-    m_auto_conn_network.set_active(network.connect_automatically);
-    m_auto_conn_network_toggled.disconnect();
-    m_auto_conn_network_toggled = m_auto_conn_network.signal_toggled().connect(
-        [&] () {
-            network.connect_automatically = m_auto_conn_network.get_active();
-        });
-
-    m_bypass_proxy.set_active(network.bypass_proxy);
-    m_bypass_proxy_toggled.disconnect();
-    m_bypass_proxy_toggled = m_bypass_proxy.signal_toggled().connect(
-        [&] () {
-            network.bypass_proxy = m_bypass_proxy.get_active();
-        });
-
-    m_use_ssl.set_active(network.use_ssl);
-    m_use_ssl_toggled.disconnect();
-    m_use_ssl_toggled = m_use_ssl.signal_toggled().connect(
-        [&] () {
-            network.use_ssl = m_use_ssl.get_active();
-        });
-
-    m_accept_invalid_cert.set_active(network.accept_invalid_ssl_cert);
-    m_accept_invalid_cert_toggled.disconnect();
-    m_accept_invalid_cert_toggled = m_accept_invalid_cert.signal_toggled().connect(
-        [&] () {
-            network.accept_invalid_ssl_cert = m_accept_invalid_cert.get_active();
-        });
-
+    bind(network.connect_selected_server_only,  m_selected_server_only, m_selected_server_only_toggled);
+    bind(network.connect_automatically,  m_auto_conn_network, m_auto_conn_network_toggled);
+    bind(network.bypass_proxy,  m_bypass_proxy, m_bypass_proxy_toggled);
+    bind(network.use_ssl,  m_use_ssl, m_use_ssl_toggled);
+    bind(network.accept_invalid_ssl_cert,  m_accept_invalid_cert, m_accept_invalid_cert_toggled);
+    bind(network.use_global_user_info,  m_use_global_user_info, m_use_global_user_info_toggled);
     on_global_user_info();
-    m_use_global_user_info.set_active(network.use_global_user_info);
-    m_use_global_user_info_toggled.disconnect();
-    m_use_global_user_info_toggled = m_use_global_user_info.signal_toggled().connect(
-        [&] () {
-            network.use_global_user_info = m_use_global_user_info.get_active();
-            on_global_user_info();
-        });
 
-    for (auto i = network.nicknames.size(); i < 3; i++) {
+    for (auto i = network.nicknames.size(); i < 2; i++) {
         network.nicknames.push_back("");
     }
-    m_nickname_fld.set_text(network.nicknames[0]);
-    m_nickname_chgd.disconnect();
-    m_nickname_chgd = m_nickname_fld.signal_changed().connect([&] () {
-        network.nicknames[0] = m_nickname_fld.get_text();
-    });
-    m_nickname_2_fld.set_text(network.nicknames[1]);
-    m_nickname_2_chgd.disconnect();
-    m_nickname_2_chgd = m_nickname_2_fld.signal_changed().connect([&] () {
-        network.nicknames[1] = m_nickname_2_fld.get_text();
-    });
-
-    m_realname_fld.set_text(network.realname);
-    m_realname_chgd.disconnect();
-    m_realname_chgd = m_realname_fld.signal_changed().connect([&] () {
-        network.realname = m_realname_fld.get_text();
-    });
-
-    m_username_fld.set_text(network.realname);
-    m_username_chgd.disconnect();
-    m_username_chgd = m_username_fld.signal_changed().connect([&] () {
-        network.realname = m_username_fld.get_text();
-    });
-
-    m_login_method_picker.set_active_id(network.login_method);
-    m_login_method_chgd.disconnect();
-    m_login_method_chgd = m_login_method_picker.signal_changed().connect([&] () {
-        network.login_method = m_login_method_picker.get_active_id();
-    });
-
-    m_password_fld.set_text(network.password);
-    m_password_chgd.disconnect();
-    m_password_chgd = m_password_fld.signal_changed().connect([&] () {
-        network.password = m_password_fld.get_text();
-    });
-
-    m_charset_picker.set_active_id(network.charset);
-    m_charset_chgd.disconnect();
-    m_charset_chgd = m_charset_picker.signal_changed().connect([&] () {
-        network.charset = m_charset_picker.get_active_id();
-    });
+    bind(network.nicknames[0], m_nickname_fld, m_nickname_chgd);
+    bind(network.nicknames[1], m_nickname_2_fld, m_nickname_2_chgd);
+    bind(network.realname, m_realname_fld, m_realname_chgd);
+    bind(network.username, m_username_fld, m_username_chgd);
+    bind(network.login_method, m_login_method_picker, m_login_method_chgd);
+    bind(network.password, m_password_fld, m_password_chgd);
+    bind(network.charset, m_charset_picker, m_charset_chgd);
 }
 
 void NetworkEditDialog::populate_servers(core::Network &network) {

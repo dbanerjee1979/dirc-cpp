@@ -8,6 +8,7 @@
 #include <core/network.h>
 #include <core/login_method_factory.h>
 #include <core/charset_factory.h>
+#include "binding.h"
 
 namespace gtk {
 
@@ -42,7 +43,7 @@ public:
     Gtk::TreeModelColumn<std::string> m_label;
 };
 
-class NetworkEditDialog : public Gtk::Window {
+class NetworkEditDialog : public Gtk::Window, Binding {
 public:
     NetworkEditDialog(core::LoginMethodFactory &login_method_factory,
                       core::CharsetFactory &charset_factory);
@@ -61,7 +62,7 @@ private:
     void on_channel_edited(const Glib::ustring &path, const Glib::ustring &value, core::Network &network);
     void on_password_edited(const Glib::ustring &path, const Glib::ustring &value, core::Network &network);
     void on_command_edited(const Glib::ustring &path, const Glib::ustring &value, core::Network &network);
-    void on_tab_changed(unsigned index);
+    void on_tab_changed(Gtk::Widget *, unsigned index);
     sigc::connection on_selection_changed(Glib::RefPtr<Gtk::TreeSelection> selection);
     void on_add_item(core::Network &network);
     void on_add_server(core::Network &network);

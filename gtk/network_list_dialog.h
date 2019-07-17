@@ -32,7 +32,6 @@ private:
     void on_network_edit(core::DircConfig &config);
     void on_sort_networks(core::DircConfig &config);
     void on_toggle_favorite(core::DircConfig &config);
-    void on_toggle_filter(core::DircConfig &config);
     void populate_list(core::DircConfig &config);
     void populate_row(Gtk::TreeModel::Row &row, core::Network &network);
 

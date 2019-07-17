@@ -148,6 +148,8 @@ void NetworkListDialog::edit(core::DircConfig &config) {
 
     bind(config.skip_list_on_startup, m_skip_net_list, m_skip_net_clicked);
     bind(config.show_favorites, m_filter_net_list, m_filter_clicked);
+    m_filter_net_list.signal_clicked().connect(
+        sigc::bind(sigc::mem_fun(*this, &NetworkListDialog::populate_list), std::ref(config)));
 
     populate_list(config);
 
@@ -214,11 +216,6 @@ void NetworkListDialog::on_toggle_favorite(core::DircConfig &config) {
         auto row = *it;
         populate_row(row, network);
     }
-}
-
-void NetworkListDialog::on_toggle_filter(core::DircConfig &config) {
-    config.show_favorites = !config.show_favorites;
-    populate_list(config);
 }
 
 void NetworkListDialog::populate_list(core::DircConfig &config) {
