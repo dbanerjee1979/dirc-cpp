@@ -170,7 +170,8 @@ NetworkEditDialog::NetworkEditDialog(core::LoginMethodFactory &login_method_fact
     m_login_method_picker.set_id_column(m_picker_columns.m_name.index());
     m_login_method_picker.pack_start(m_picker_columns.m_label);
 
-    m_use_global_user_info.signal_toggled().connect(sigc::mem_fun(*this, &NetworkEditDialog::on_global_user_info));
+    m_use_global_user_info.signal_toggled().connect(
+        sigc::mem_fun(*this, &NetworkEditDialog::on_global_user_info));
 
     std::vector<std::string> login_methods = login_method_factory.get_login_methods();
     for (auto it = login_methods.begin(); it != login_methods.end(); it++) {
